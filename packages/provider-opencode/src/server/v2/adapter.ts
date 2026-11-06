@@ -199,6 +199,7 @@ interface ActiveTurn {
   providerTurn: OrchestrationV2ProviderTurn;
   readonly texts: Map<string, OpenBlock>;
   readonly tools: Map<string, { readonly name: string; input: Record<string, unknown> }>;
+  readonly shellIdsByTool: Map<string, string>;
   readonly startedAt: Map<string, DateTime.Utc>;
   readonly ordinals: Map<string, number>;
   nextOrdinal: number;
@@ -256,6 +257,19 @@ interface SubagentCall {
   completedAt: DateTime.Utc | null;
 }
 
+/** A shell tool call that returned at launch and keeps running after its turn. */
+interface BackgroundShell {
+  readonly shellId: string;
+  readonly toolId: string;
+  readonly nativeId: string;
+  readonly state: ThreadState;
+  readonly turn: ActiveTurn;
+  readonly startedAt: DateTime.Utc;
+  readonly ordinal: number;
+  readonly description: string;
+  readonly tool: { readonly name: string; readonly input: Record<string, unknown> };
+}
+
 interface Wake {
   readonly messageId: MessageId | undefined;
   readonly events: Array<OpenCode2Client.OpenCode2StreamEvent>;
@@ -293,6 +307,7 @@ interface ThreadState {
   policy: RulesPolicy;
   readonly grants: Array<Rule>;
   readonly calls: Map<string, SubagentCall>;
+  readonly shells: Map<string, BackgroundShell>;
   subagent:
     | {
         call: SubagentCall;
@@ -766,6 +781,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       policy: input.runtimePolicy,
       grants: [],
       calls: new Map(),
+      shells: new Map(),
       subagent,
       wakes: [],
       reports: new Map(),
@@ -829,6 +845,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
     const owesWork = (state: ThreadState) =>
       state.wakes.length > 0 ||
       state.reports.size > 0 ||
+      state.shells.size > 0 ||
       (state.subagent !== undefined && busy.has(state.sessionId)) ||
       [...state.calls.values()].some((call) => call.background);
 
@@ -991,10 +1008,12 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       });
     });
 
-    const emitTool = Effect.fnUntraced(function* (
+    const emitToolCall = Effect.fnUntraced(function* (
       state: ThreadState,
       turn: ActiveTurn,
       id: string,
+      tool: { readonly name: string; readonly input: Record<string, unknown> },
+      startedAt: DateTime.Utc,
       status: "running" | "completed" | "failed" | "interrupted",
       result?: {
         readonly output: string | undefined;
@@ -1002,10 +1021,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
         readonly files?: ReadonlyArray<{ readonly uri: string; readonly mime: string }>;
       },
     ) {
-      const tool = turn.tools.get(id);
-      if (tool === undefined) return;
       const updatedAt = yield* DateTime.now;
-      const startedAt = turn.startedAt.get(id) ?? updatedAt;
       const completedAt = status === "running" ? null : updatedAt;
       const nativeId = `${turn.scope}${id}`;
       const settled =
@@ -1027,6 +1043,123 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
           },
         ),
       });
+    });
+
+    const emitTool = Effect.fnUntraced(function* (
+      state: ThreadState,
+      turn: ActiveTurn,
+      id: string,
+      status: "running" | "completed" | "failed" | "interrupted",
+      result?: {
+        readonly output: string | undefined;
+        readonly metadata: unknown;
+        readonly files?: ReadonlyArray<{ readonly uri: string; readonly mime: string }>;
+      },
+    ) {
+      const tool = turn.tools.get(id);
+      if (tool === undefined) return;
+      yield* emitToolCall(
+        state,
+        turn,
+        id,
+        tool,
+        turn.startedAt.get(id) ?? (yield* DateTime.now),
+        status,
+        result,
+      );
+    });
+
+    const trackShell = Effect.fnUntraced(function* (
+      state: ThreadState,
+      turn: ActiveTurn,
+      toolId: string,
+      tool: { readonly name: string; readonly input: Record<string, unknown> },
+      shellId: string,
+      output: string | undefined,
+    ) {
+      const startedAt = turn.startedAt.get(toolId) ?? (yield* DateTime.now);
+      const nativeId = `${turn.scope}${toolId}`;
+      const command = stringField(tool.input, "command")?.trim();
+      state.shells.set(shellId, {
+        shellId,
+        toolId,
+        nativeId,
+        state,
+        turn,
+        startedAt,
+        ordinal: ordinalOf(turn, nativeId),
+        description: command !== undefined && command.length > 0 ? command : "Shell command",
+        tool,
+      });
+      turn.tools.delete(toolId);
+      turn.shellIdsByTool.delete(toolId);
+      yield* emitToolCall(state, turn, toolId, tool, startedAt, "running", {
+        output,
+        metadata: undefined,
+      });
+      yield* syncRosterAncestors(state);
+    });
+
+    type ShellExit = {
+      readonly exit?: number | undefined;
+      readonly status: "running" | "exited" | "timeout" | "killed";
+    };
+
+    const shellExitStatus = (exit: ShellExit) =>
+      exit.status === "killed"
+        ? ("interrupted" as const)
+        : exit.status === "timeout"
+          ? ("failed" as const)
+          : ("completed" as const);
+
+    const shellExitMetadata = (exit: ShellExit) =>
+      exit.exit === undefined ? {} : { exit: exit.exit };
+
+    const settleShell = Effect.fnUntraced(function* (shell: BackgroundShell, exit: ShellExit) {
+      shell.state.shells.delete(shell.shellId);
+      yield* emitToolCall(
+        shell.state,
+        shell.turn,
+        shell.toolId,
+        shell.tool,
+        shell.startedAt,
+        shellExitStatus(exit),
+        { output: undefined, metadata: shellExitMetadata(exit) },
+      );
+      yield* syncRosterAncestors(shell.state);
+    });
+
+    const shellById = (shellId: string): BackgroundShell | undefined => {
+      for (const state of threads.values()) {
+        const shell = state.shells.get(shellId);
+        if (shell !== undefined) return shell;
+      }
+      return undefined;
+    };
+
+    /** A shell that exited before its tool call returned at launch. */
+    const settlePendingShell = Effect.fnUntraced(function* (shellId: string, exit: ShellExit) {
+      for (const state of threads.values()) {
+        const turn = state.active;
+        if (turn === undefined) continue;
+        for (const [toolId, id] of turn.shellIdsByTool) {
+          if (id !== shellId) continue;
+          const tool = turn.tools.get(toolId);
+          turn.tools.delete(toolId);
+          turn.shellIdsByTool.delete(toolId);
+          if (tool === undefined) return;
+          yield* emitToolCall(
+            state,
+            turn,
+            toolId,
+            tool,
+            turn.startedAt.get(toolId) ?? (yield* DateTime.now),
+            shellExitStatus(exit),
+            { output: undefined, metadata: shellExitMetadata(exit) },
+          );
+          return;
+        }
+      }
     });
 
     const emitCompaction = Effect.fnUntraced(function* (
@@ -1144,6 +1277,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       providerTurn,
       texts: new Map(),
       tools: new Map(),
+      shellIdsByTool: new Map(),
       startedAt: new Map(),
       ordinals: new Map(),
       nextOrdinal: providerTurn.ordinal * 100 + 1,
@@ -1257,16 +1391,29 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
     });
 
     const syncRoster = Effect.fnUntraced(function* (state: ThreadState) {
-      const roster = runningCalls(state)
-        .filter((call) => call.background)
-        .map((call) => ({
-          taskId: call.nativeId,
-          kind: "subagent" as const,
-          ...(call.title?.trim() ? { description: call.title.trim() } : {}),
-          ...(call.child?.subagent === undefined
-            ? {}
-            : { childThreadId: call.child.subagent.appThread.id }),
-        }));
+      const roster = [
+        ...runningCalls(state)
+          .filter((call) => call.background)
+          .map((call) => ({
+            taskId: call.nativeId,
+            kind: "subagent" as const,
+            ordinal: call.ordinal,
+            ...(call.title?.trim() ? { description: call.title.trim() } : {}),
+            ...(call.child?.subagent === undefined
+              ? {}
+              : { childThreadId: call.child.subagent.appThread.id }),
+          })),
+        ...sessionsOf(state).flatMap((session) =>
+          [...session.shells.values()].map((shell) => ({
+            taskId: shell.nativeId,
+            kind: "command" as const,
+            ordinal: shell.ordinal,
+            description: shell.description,
+          })),
+        ),
+      ]
+        .sort((left, right) => left.ordinal - right.ordinal)
+        .map(({ ordinal: _ordinal, ...task }) => task);
       const current = state.providerThread.pendingBackgroundTasks ?? [];
       if (
         state.publishedBackgroundWork === hasBackground(state) &&
@@ -1274,9 +1421,10 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
         current.every(
           (task, index) =>
             task.taskId === roster[index]?.taskId &&
+            task.kind === roster[index]?.kind &&
             task.description === roster[index]?.description &&
             (task.kind === "subagent" ? task.childThreadId : undefined) ===
-              roster[index]?.childThreadId,
+              (roster[index]?.kind === "subagent" ? roster[index].childThreadId : undefined),
         )
       ) {
         return;
@@ -2085,6 +2233,13 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
           const call = state.calls.get(event.data.id);
           const childId = stringField(event.data.metadata, "sessionID");
           if (call !== undefined && childId !== undefined) yield* attachChild(call, childId);
+          const shellId = stringField(event.data.metadata, "shellID");
+          if (
+            shellId !== undefined &&
+            turn.tools.get(event.data.id)?.input["background"] === true
+          ) {
+            turn.shellIdsByTool.set(event.data.id, shellId);
+          }
           return;
         }
         case "session.tool.success": {
@@ -2099,6 +2254,24 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
               return yield* emitSubagent(call);
             }
             return yield* settleCall(call, "completed", subagentOutput(textOf(event.data.content)));
+          }
+          const tool = turn.tools.get(event.data.id);
+          const shellId =
+            stringField(event.data.metadata, "shellID") ?? turn.shellIdsByTool.get(event.data.id);
+          if (
+            tool !== undefined &&
+            (tool.name === "shell" || tool.name === "bash") &&
+            event.data.metadata?.["status"] === "running" &&
+            shellId !== undefined
+          ) {
+            return yield* trackShell(
+              state,
+              turn,
+              event.data.id,
+              tool,
+              shellId,
+              textOf(event.data.content),
+            );
           }
           const output = textOf(event.data.content);
           yield* emitTool(state, turn, event.data.id, "completed", {
@@ -2360,6 +2533,12 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       sessionId: string | undefined,
       held = false,
     ) {
+      if (event.type === "shell.exited") {
+        const shell = shellById(event.data.id);
+        if (shell !== undefined) yield* settleShell(shell, event.data);
+        else yield* settlePendingShell(event.data.id, event.data);
+        return;
+      }
       const ended =
         !held && (event.type === "unreadable.execution.ended" || executionEnd(event.type))
           ? threads.get(sessionId ?? "")

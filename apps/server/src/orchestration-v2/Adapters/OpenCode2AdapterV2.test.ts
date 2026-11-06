@@ -2829,6 +2829,176 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
     }).pipe(Effect.scoped),
   );
 
+  it.effect("reports a background shell as pending work after its turn ends", () =>
+    Effect.gen(function* () {
+      const shellID = "sh_0eb7a4324001OUYfV2HeA220HO";
+      const tool = { sessionID: SESSION, assistantMessageID: "msg_assistant", id: "call-sleep" };
+      const { runtime, thread } = yield* resumed([
+        out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+        promptAccepted,
+        event("session.execution.started", { sessionID: SESSION }),
+        event("session.tool.input.started", { ...tool, name: "shell" }),
+        event("session.tool.called", {
+          ...tool,
+          input: { command: "sleep 30", background: true },
+          executed: false,
+        }),
+        event("shell.created", {
+          info: {
+            id: shellID,
+            status: "running",
+            command: "sleep 30",
+            cwd: WORK,
+            shell: "/bin/bash",
+            file: "/tmp/sleep-30.out",
+            metadata: { sessionID: SESSION },
+            time: { started: 1 },
+          },
+        }),
+        event("session.tool.progress", { ...tool, metadata: { shellID } }),
+        event(
+          "session.tool.success",
+          {
+            ...tool,
+            content: [{ type: "text", text: "Command moved to the background." }],
+            metadata: { status: "running", truncated: false, shellID },
+            executed: false,
+          },
+          undefined,
+          2,
+        ),
+        event("session.execution.succeeded", { sessionID: SESSION }),
+      ]);
+      const events = yield* runtime.events.pipe(
+        Stream.takeUntil((event) => event.type === "turn.terminal"),
+        Stream.runCollect,
+        Effect.forkScoped,
+      );
+      yield* runtime.startTurn(turnInput(thread));
+      const collected = yield* Fiber.join(events);
+      const item = collected
+        .flatMap((event) => (event.type === "turn_item.updated" ? [event.turnItem] : []))
+        .findLast((item) => item.nativeItemRef?.nativeId?.endsWith(tool.id));
+      assert.equal(item?.type, "command_execution");
+      assert.equal(item?.status, "running");
+      const updated = collected.findLast(
+        (event) =>
+          event.type === "provider_thread.updated" && event.providerThread.id === thread.id,
+      );
+      assert.deepInclude(updated, {
+        type: "provider_thread.updated",
+        pendingBackgroundWork: true,
+      });
+      assert.deepEqual(
+        updated?.type === "provider_thread.updated"
+          ? updated.providerThread.pendingBackgroundTasks
+          : undefined,
+        [{ taskId: tool.id, kind: "command", description: "sleep 30" }],
+      );
+      assert.isTrue(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("settles a background shell when it exits", () =>
+    Effect.gen(function* () {
+      const gate = makeProviderReplayGate(["exit"]);
+      const shellID = "sh_0eb7a4324001OUYfV2HeA220HO";
+      const tool = { sessionID: SESSION, assistantMessageID: "msg_assistant", id: "call-sleep" };
+      const { runtime, thread } = yield* resumed(
+        [
+          out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+          promptAccepted,
+          event("session.execution.started", { sessionID: SESSION }),
+          event("session.tool.input.started", { ...tool, name: "shell" }),
+          event("session.tool.called", {
+            ...tool,
+            input: { command: "sleep 30", background: true },
+            executed: false,
+          }),
+          event("session.tool.progress", { ...tool, metadata: { shellID } }),
+          event(
+            "session.tool.success",
+            {
+              ...tool,
+              content: [{ type: "text", text: "Command moved to the background." }],
+              metadata: { status: "running", truncated: false, shellID },
+              executed: false,
+            },
+            undefined,
+            2,
+          ),
+          event("session.execution.succeeded", { sessionID: SESSION }),
+          event("shell.exited", { id: shellID, exit: 0, status: "exited" }, "exit"),
+        ],
+        { replayGate: gate },
+      );
+      const settled = yield* Deferred.make<string>();
+      yield* runtime.events.pipe(
+        Stream.tap((event) =>
+          event.type === "turn_item.updated" &&
+          event.turnItem.nativeItemRef?.nativeId?.endsWith(tool.id) &&
+          event.turnItem.status !== "running"
+            ? Deferred.succeed(settled, event.turnItem.status)
+            : Effect.void,
+        ),
+        Stream.runDrain,
+        Effect.forkScoped,
+      );
+      const terminal = yield* terminalOf(runtime).pipe(Effect.forkScoped);
+      yield* runtime.startTurn(turnInput(thread));
+      assert.equal((yield* Fiber.join(terminal))?.status, "completed");
+      assert.isTrue(yield* runtime.hasPendingBackgroundWork!);
+      gate.release("exit");
+      assert.equal(yield* Deferred.await(settled), "completed");
+      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("settles a background shell that exits before its tool call returns", () =>
+    Effect.gen(function* () {
+      const shellID = "sh_0eb7a4324001OUYfV2HeA220HO";
+      const tool = { sessionID: SESSION, assistantMessageID: "msg_assistant", id: "call-quick" };
+      const { runtime, thread } = yield* resumed([
+        out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+        promptAccepted,
+        event("session.execution.started", { sessionID: SESSION }),
+        event("session.tool.input.started", { ...tool, name: "shell" }),
+        event("session.tool.called", {
+          ...tool,
+          input: { command: "echo hi", background: true },
+          executed: false,
+        }),
+        event("session.tool.progress", { ...tool, metadata: { shellID } }),
+        event("shell.exited", { id: shellID, exit: 0, status: "exited" }),
+        event(
+          "session.tool.success",
+          {
+            ...tool,
+            content: [{ type: "text", text: "Command moved to the background." }],
+            metadata: { status: "running", truncated: false, shellID },
+            executed: false,
+          },
+          undefined,
+          2,
+        ),
+        event("session.execution.succeeded", { sessionID: SESSION }),
+      ]);
+      const events = yield* runtime.events.pipe(
+        Stream.takeUntil((event) => event.type === "turn.terminal"),
+        Stream.runCollect,
+        Effect.forkScoped,
+      );
+      yield* runtime.startTurn(turnInput(thread));
+      const collected = yield* Fiber.join(events);
+      const item = collected
+        .flatMap((event) => (event.type === "turn_item.updated" ? [event.turnItem] : []))
+        .findLast((item) => item.nativeItemRef?.nativeId?.endsWith(tool.id));
+      assert.equal(item?.type, "command_execution");
+      assert.equal(item?.status, "completed");
+      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped),
+  );
+
   it.effect("re-registers T3 MCP each turn and drops its instructions when adding fails", () =>
     Effect.gen(function* () {
       const mcpSessions = yield* McpProviderSessions.McpProviderSessions;
