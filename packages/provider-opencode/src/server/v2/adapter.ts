@@ -14,6 +14,7 @@ import {
   type OpenCodeEvent,
 } from "@opencode/client/effect";
 import { Mcp } from "@opencode/schema/mcp";
+import { Shell } from "@opencode/schema/shell";
 import {
   isOrchestrationV2WorkActive,
   type ChatAttachment,
@@ -259,7 +260,9 @@ interface SubagentCall {
 
 /** A shell tool call that returned at launch and keeps running after its turn. */
 interface BackgroundShell {
-  readonly shellId: string;
+  readonly shellId: Shell.ID;
+  /** Shells stay at their launch directory when the session moves. */
+  readonly directory: string;
   readonly toolId: string;
   readonly nativeId: string;
   readonly state: ThreadState;
@@ -620,6 +623,7 @@ const boundaryAfter = (
 };
 
 const isProviderAdapterError = Schema.is(ProviderAdapter.ProviderAdapterV2Error);
+const isShellId = Schema.is(Shell.ID);
 
 const modelRef = (selection: ProviderAdapter.ProviderAdapterV2TurnInput["modelSelection"]) => {
   const parsed = OpenCodeRuntime.parseOpenCodeModelSlug(selection.model);
@@ -842,12 +846,13 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       return state.active === undefined ? undefined : { state, turn: state.active };
     };
 
-    const owesWork = (state: ThreadState) =>
+    const owesBackground = (state: ThreadState) =>
       state.wakes.length > 0 ||
       state.reports.size > 0 ||
-      state.shells.size > 0 ||
       (state.subagent !== undefined && busy.has(state.sessionId)) ||
       [...state.calls.values()].some((call) => call.background);
+
+    const owesWork = (state: ThreadState) => owesBackground(state) || state.shells.size > 0;
 
     const hasBackground = (thread: ThreadState) => sessionsOf(thread).some(owesWork);
 
@@ -1074,7 +1079,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       turn: ActiveTurn,
       toolId: string,
       tool: { readonly name: string; readonly input: Record<string, unknown> },
-      shellId: string,
+      shellId: Shell.ID,
       output: string | undefined,
     ) {
       const startedAt = turn.startedAt.get(toolId) ?? (yield* DateTime.now);
@@ -1082,6 +1087,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       const command = stringField(tool.input, "command")?.trim();
       state.shells.set(shellId, {
         shellId,
+        directory: state.directory,
         toolId,
         nativeId,
         state,
@@ -1102,13 +1108,13 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
 
     type ShellExit = {
       readonly exit?: number | undefined;
-      readonly status: "running" | "exited" | "timeout" | "killed";
+      readonly status: Shell.Status | "lost";
     };
 
     const shellExitStatus = (exit: ShellExit) =>
       exit.status === "killed"
         ? ("interrupted" as const)
-        : exit.status === "timeout"
+        : exit.status === "timeout" || exit.status === "lost"
           ? ("failed" as const)
           : ("completed" as const);
 
@@ -1116,7 +1122,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       exit.exit === undefined ? {} : { exit: exit.exit };
 
     const settleShell = Effect.fnUntraced(function* (shell: BackgroundShell, exit: ShellExit) {
-      shell.state.shells.delete(shell.shellId);
+      if (!shell.state.shells.delete(shell.shellId)) return;
       yield* emitToolCall(
         shell.state,
         shell.turn,
@@ -2262,7 +2268,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
             tool !== undefined &&
             (tool.name === "shell" || tool.name === "bash") &&
             event.data.metadata?.["status"] === "running" &&
-            shellId !== undefined
+            isShellId(shellId)
           ) {
             return yield* trackShell(
               state,
@@ -2410,6 +2416,23 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
         readonly metadata?: Readonly<Record<string, unknown>> | undefined;
       },
     ) {
+      const shellId = stringField(payload.metadata, "shellID");
+      if (stringField(payload.metadata, "source") === "shell" && shellId !== undefined) {
+        // OpenCode reports a kill as an error; an agent woken by it starts the shell again.
+        if (state.stoppedChildren.has(shellId)) {
+          // A running execution ends without delivering it, and the next prompt would.
+          if (state.active !== undefined) state.strandedSteers.add(inboxId);
+          else {
+            state.reports.set(inboxId, {
+              inboxId,
+              childId: shellId,
+              report: { kind: "command", outcome: "cancelled" },
+              text: payload.text,
+            });
+          }
+        }
+        return;
+      }
       const childId = stringField(payload.metadata, "childID");
       if (stringField(payload.metadata, "source") !== "subagent" || childId === undefined) return;
       strays.delete(childId);
@@ -2616,6 +2639,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       }
       if (event.type === "session.inbox.cancelled" || event.type === "session.inbox.delivered") {
         state.reports.delete(event.data.inboxID);
+        state.strandedSteers.delete(event.data.inboxID);
         const turn = state.active;
         if (turn !== undefined && turn.steers.delete(event.data.inboxID)) {
           turn.settledInbox.add(event.data.inboxID);
@@ -2666,6 +2690,9 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       }
       for (const state of threads.values()) {
         for (const call of runningCalls(state)) yield* settleCall(call, "failed");
+        for (const shell of state.shells.values()) {
+          yield* settleShell(shell, { status: "lost" });
+        }
         for (const wake of state.wakes.splice(0)) wake.dropped = true;
         state.reports.clear();
       }
@@ -2768,12 +2795,14 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
         .filter(([, state]) => state.active !== undefined)
         .toSorted(([left], [right]) => callsAbove(right).length - callsAbove(left).length);
       const background = [...threads.values()].filter(
-        (state) => state.subagent === undefined && hasBackground(state),
+        (state) => state.subagent === undefined && sessionsOf(state).some(owesBackground),
       );
+      const shells = [...threads.values()].flatMap((state) => [...state.shells.values()]);
       const marked = [...threads.values()].some((state) => state.unsettled);
       if (
         running.length === 0 &&
         background.length === 0 &&
+        shells.length === 0 &&
         busy.size === 0 &&
         !marked &&
         strays.size === 0
@@ -2821,6 +2850,19 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
           session.reports.clear();
         }
         for (const session of sessions.toReversed()) yield* syncRoster(session);
+      }
+      // An exit lost with the stream would leave its shell running here forever.
+      for (const shell of shells) {
+        const read = yield* client.shell
+          .get({ id: shell.shellId, location: { directory: shell.directory } })
+          .pipe(
+            Effect.map(({ data }): ShellExit => data),
+            Effect.catchTags({
+              ShellNotFoundError: () => Effect.succeed<ShellExit>({ status: "killed" }),
+              LocationNotFoundError: () => Effect.succeed<ShellExit>({ status: "killed" }),
+            }),
+          );
+        if (read.status !== "running") yield* settleShell(shell, read);
       }
       // Stopped off the lock this reconcile holds; one still running waits for a Stop.
       for (const thread of new Set([...strays.values()].map(rootOf))) {
@@ -3482,6 +3524,23 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       const children = new Map(
         calls.flatMap((call) => childrenOf(call).map((childId) => [childId, call.state] as const)),
       );
+      const shells = callers.flatMap((caller) => [...caller.shells.values()]);
+      // OpenCode reports a kill before it answers, so mark them before asking.
+      for (const shell of shells) shell.state.stoppedChildren.add(shell.shellId);
+      const stoppedShells = yield* Effect.filter(shells, (shell) =>
+        client.shell.remove({ id: shell.shellId, location: { directory: shell.directory } }).pipe(
+          Effect.catchTags({ LocationNotFoundError: () => Effect.void }),
+          Effect.timeout(INTERRUPT_TIMEOUT),
+          Effect.tapCause((cause) =>
+            Effect.logWarning("Could not stop an OpenCode background shell.", cause),
+          ),
+          Effect.exit,
+          Effect.map(Exit.isSuccess),
+        ),
+      );
+      for (const shell of shells) {
+        if (!stoppedShells.includes(shell)) shell.state.stoppedChildren.delete(shell.shellId);
+      }
       const unreached = new Set<string>();
       for (const [childId, caller] of children) {
         caller.stoppedChildren.add(childId);
@@ -3513,6 +3572,7 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
             if (childrenOf(call).some((childId) => unreached.has(childId))) continue;
             yield* settleCall(call, "interrupted");
           }
+          for (const shell of stoppedShells) yield* settleShell(shell, { status: "killed" });
           for (const caller of callers) {
             for (const report of caller.reports.values()) {
               caller.stoppedChildren.add(report.childId);

@@ -34,6 +34,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Scope from "effect/Scope";
+import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
 import * as Exit from "effect/Exit";
 import { TestClock } from "effect/testing";
@@ -2829,6 +2830,95 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
     }).pipe(Effect.scoped),
   );
 
+  const SHELL_ID = "sh_0eb7a4324001OUYfV2HeA220HO";
+  const shellTool = { sessionID: SESSION, assistantMessageID: "msg_assistant", id: "call-sleep" };
+  const shellLaunch: ReadonlyArray<ProviderReplayEntry> = [
+    event("session.tool.input.started", { ...shellTool, name: "shell" }),
+    event("session.tool.called", {
+      ...shellTool,
+      input: { command: "sleep 30", background: true },
+      executed: false,
+    }),
+    event("session.tool.progress", { ...shellTool, metadata: { shellID: SHELL_ID } }),
+    event(
+      "session.tool.success",
+      {
+        ...shellTool,
+        content: [{ type: "text", text: "Command moved to the background." }],
+        metadata: { status: "running", truncated: false, shellID: SHELL_ID },
+        executed: false,
+      },
+      undefined,
+      2,
+    ),
+  ];
+  const shellTurn: ReadonlyArray<ProviderReplayEntry> = [
+    out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+    promptAccepted,
+    event("session.execution.started", { sessionID: SESSION }),
+    ...shellLaunch,
+    event("session.execution.succeeded", { sessionID: SESSION }),
+  ];
+
+  // OpenCode 2.2.5 reports a kill as an error, whatever the shell's exit said.
+  const shellKilledReport = event("session.inbox.enqueued", {
+    sessionID: SESSION,
+    inboxID: "msg_shell_killed",
+    item: {
+      type: "synthetic",
+      delivery: "steer",
+      payload: {
+        text: `<shell id="${SHELL_ID}" state="error" command="sleep 30">\nShell.NotFoundError\n</shell>`,
+        description: "sleep 30",
+        metadata: { source: "shell", shellID: SHELL_ID, jobID: SHELL_ID, state: "error" },
+      },
+    },
+  });
+  /** `runtime.events` is a queue, so a test gets one reader; a second would steal events. */
+  const watchShell = (runtime: ProviderAdapter.ProviderAdapterV2SessionRuntime) =>
+    Effect.gen(function* () {
+      const seen = {
+        status: undefined as string | undefined,
+        listed: false,
+        ended: [] as Array<string>,
+      };
+      let wake = yield* Deferred.make<void>();
+      yield* runtime.events.pipe(
+        Stream.tap((event) =>
+          Effect.gen(function* () {
+            if (event.type === "turn.terminal") seen.ended.push(event.status);
+            if (
+              event.type === "provider_thread.updated" &&
+              (event.providerThread.pendingBackgroundTasks ?? []).length > 0
+            ) {
+              seen.listed = true;
+            }
+            if (
+              event.type === "turn_item.updated" &&
+              event.turnItem.nativeItemRef?.nativeId?.endsWith(shellTool.id)
+            ) {
+              seen.status = event.turnItem.status;
+            }
+            yield* Deferred.succeed(wake, undefined);
+          }),
+        ),
+        Stream.runDrain,
+        Effect.forkScoped,
+      );
+      const until = (check: () => boolean): Effect.Effect<void> =>
+        Effect.suspend(() => {
+          if (check()) return Effect.void;
+          return Effect.gen(function* () {
+            wake = yield* Deferred.make<void>();
+            if (check()) return;
+            yield* Deferred.await(wake);
+            yield* until(check);
+          });
+        });
+      const settled = () => seen.status !== undefined && seen.status !== "running";
+      return { seen, until, settled };
+    });
+
   it.effect("reports a background shell as pending work after its turn ends", () =>
     Effect.gen(function* () {
       const shellID = "sh_0eb7a4324001OUYfV2HeA220HO";
@@ -2902,54 +2992,18 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
   it.effect("settles a background shell when it exits", () =>
     Effect.gen(function* () {
       const gate = makeProviderReplayGate(["exit"]);
-      const shellID = "sh_0eb7a4324001OUYfV2HeA220HO";
-      const tool = { sessionID: SESSION, assistantMessageID: "msg_assistant", id: "call-sleep" };
       const { runtime, thread } = yield* resumed(
-        [
-          out("session.prompt", { sessionID: SESSION, text: "<any>" }),
-          promptAccepted,
-          event("session.execution.started", { sessionID: SESSION }),
-          event("session.tool.input.started", { ...tool, name: "shell" }),
-          event("session.tool.called", {
-            ...tool,
-            input: { command: "sleep 30", background: true },
-            executed: false,
-          }),
-          event("session.tool.progress", { ...tool, metadata: { shellID } }),
-          event(
-            "session.tool.success",
-            {
-              ...tool,
-              content: [{ type: "text", text: "Command moved to the background." }],
-              metadata: { status: "running", truncated: false, shellID },
-              executed: false,
-            },
-            undefined,
-            2,
-          ),
-          event("session.execution.succeeded", { sessionID: SESSION }),
-          event("shell.exited", { id: shellID, exit: 0, status: "exited" }, "exit"),
-        ],
+        [...shellTurn, event("shell.exited", { id: SHELL_ID, exit: 0, status: "exited" }, "exit")],
         { replayGate: gate },
       );
-      const settled = yield* Deferred.make<string>();
-      yield* runtime.events.pipe(
-        Stream.tap((event) =>
-          event.type === "turn_item.updated" &&
-          event.turnItem.nativeItemRef?.nativeId?.endsWith(tool.id) &&
-          event.turnItem.status !== "running"
-            ? Deferred.succeed(settled, event.turnItem.status)
-            : Effect.void,
-        ),
-        Stream.runDrain,
-        Effect.forkScoped,
-      );
-      const terminal = yield* terminalOf(runtime).pipe(Effect.forkScoped);
+      const { seen, until, settled } = yield* watchShell(runtime);
       yield* runtime.startTurn(turnInput(thread));
-      assert.equal((yield* Fiber.join(terminal))?.status, "completed");
+      yield* until(() => seen.ended.length === 1 && seen.listed);
+      assert.deepEqual(seen.ended, ["completed"]);
       assert.isTrue(yield* runtime.hasPendingBackgroundWork!);
       gate.release("exit");
-      assert.equal(yield* Deferred.await(settled), "completed");
+      yield* until(settled);
+      assert.equal(seen.status, "completed");
       assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
     }).pipe(Effect.scoped),
   );
@@ -2997,6 +3051,299 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
       assert.equal(item?.status, "completed");
       assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
     }).pipe(Effect.scoped),
+  );
+
+  const shellRead = (reply_: ProviderReplayEntry): ReadonlyArray<ProviderReplayEntry> => [
+    out("shell.get", { id: SHELL_ID, "location[directory]": WORK }),
+    reply_,
+  ];
+  const shellInfo = (status: "running" | "exited" | "killed", exit?: number) =>
+    reply("shell.get", {
+      location: { directory: WORK },
+      data: {
+        id: SHELL_ID,
+        status,
+        ...(exit === undefined ? {} : { exit }),
+        command: "sleep 30",
+        cwd: WORK,
+        shell: "/bin/sh",
+        file: "/tmp/sleep-30.out",
+        metadata: { sessionID: SESSION },
+        time: { started: 1 },
+      },
+    });
+  const shellGone = reply("shell.get", {
+    status: 404,
+    body: {
+      _tag: "ShellNotFoundError",
+      id: SHELL_ID,
+      message: `Shell command not found: ${SHELL_ID}`,
+    },
+  });
+  const locationGone = (operation: string) =>
+    reply(operation, {
+      status: 404,
+      body: {
+        _tag: "LocationNotFoundError",
+        location: { directory: WORK },
+        message: `Location not found: ${WORK}`,
+      },
+    });
+  it.effect.each([
+    {
+      name: "stops a background shell on Stop",
+      // On an idle session OpenCode resumes within 2ms of the report, 2s before the model answers.
+      stop: [
+        shellKilledReport,
+        event("session.execution.started", { sessionID: SESSION }),
+        out("session.interrupt", { sessionID: SESSION }),
+        reply("session.interrupt", { interrupted: true }),
+        event("session.inbox.delivered", { sessionID: SESSION, inboxID: "msg_shell_killed" }),
+        event("shell.exited", { id: SHELL_ID, status: "killed" }),
+        event("shell.deleted", { id: SHELL_ID }),
+        reply("shell.remove", null),
+      ],
+    },
+    {
+      name: "releases a shell in a lost directory on Stop",
+      stop: [locationGone("shell.remove")],
+    },
+  ])("$name", ({ stop }) =>
+    Effect.gen(function* () {
+      const offered = yield* Ref.make(0);
+      const { runtime, thread } = yield* resumed([
+        ...shellTurn,
+        out("shell.remove", { id: SHELL_ID, "location[directory]": WORK }),
+        ...stop,
+      ]).pipe(
+        Effect.provideService(ProviderContinuationRequests.ProviderContinuationRequests, {
+          offer: () => Ref.update(offered, (count) => count + 1),
+          take: Effect.never,
+        }),
+      );
+      const { seen, until, settled } = yield* watchShell(runtime);
+      yield* runtime.startTurn(turnInput(thread));
+      yield* until(() => seen.ended.length === 1);
+      assert.deepEqual(seen.ended, ["completed"]);
+      yield* runtime.interruptTurn({
+        providerThread: thread,
+        providerTurnId: yield* providerTurnId,
+        requestRuntimeRestart: true,
+      });
+      yield* until(settled);
+      assert.equal(seen.status, "interrupted");
+      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+      assert.equal(yield* Ref.get(offered), 0);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("keeps a background shell pending when OpenCode fails to stop it", () =>
+    Effect.gen(function* () {
+      const { runtime, thread } = yield* resumed([
+        ...shellTurn,
+        out("shell.remove", { id: SHELL_ID, "location[directory]": WORK }),
+        reply("shell.remove", { status: 500, body: { message: "busy" } }),
+      ]);
+      const { seen, until } = yield* watchShell(runtime);
+      yield* runtime.startTurn(turnInput(thread));
+      yield* until(() => seen.ended.length === 1 && seen.listed);
+      yield* runtime.interruptTurn({
+        providerThread: thread,
+        providerTurnId: yield* providerTurnId,
+        requestRuntimeRestart: true,
+      });
+      assert.equal(seen.status, "running");
+      assert.isTrue(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect.each([
+    { name: "Stop takes back a queued shell report", delivered: false },
+    { name: "Stop leaves a delivered shell report", delivered: true },
+  ])("$name", ({ delivered }) =>
+    Effect.gen(function* () {
+      const { runtime, thread } = yield* resumed([
+        out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+        promptAccepted,
+        event("session.execution.started", { sessionID: SESSION }),
+        ...shellLaunch,
+        out("shell.remove", { id: SHELL_ID, "location[directory]": WORK }),
+        // A running execution ends without delivering the report, and nothing else starts.
+        shellKilledReport,
+        ...(delivered
+          ? [event("session.inbox.delivered", { sessionID: SESSION, inboxID: "msg_shell_killed" })]
+          : []),
+        event("shell.exited", { id: SHELL_ID, status: "killed" }),
+        event("shell.deleted", { id: SHELL_ID }),
+        reply("shell.remove", null),
+        out("session.interrupt", { sessionID: SESSION }),
+        reply("session.interrupt", { interrupted: true }),
+        event("session.execution.interrupted", { sessionID: SESSION }),
+        ...(delivered
+          ? []
+          : [
+              out("session.inbox.cancel", { sessionID: SESSION, inboxID: "msg_shell_killed" }),
+              reply("session.inbox.cancel", null),
+            ]),
+        out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+        promptAccepted,
+        event("session.execution.succeeded", { sessionID: SESSION }),
+      ]);
+      const { seen, until, settled } = yield* watchShell(runtime);
+      yield* runtime.startTurn(turnInput(thread));
+      yield* until(() => seen.listed);
+      yield* runtime.interruptTurn({
+        providerThread: thread,
+        providerTurnId: yield* providerTurnId,
+        requestRuntimeRestart: true,
+      });
+      yield* until(() => settled() && seen.ended.length === 1);
+      assert.equal(seen.status, "interrupted");
+      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+      yield* runtime.startTurn(secondTurn(thread));
+      yield* until(() => seen.ended.length === 2);
+      assert.deepEqual(seen.ended, ["interrupted", "completed"]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("stops a shell an earlier turn started when Stop ends a later turn", () =>
+    Effect.gen(function* () {
+      const { runtime, thread } = yield* resumed([
+        ...shellTurn,
+        out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+        promptAccepted,
+        event("session.execution.started", { sessionID: SESSION }),
+        out("shell.remove", { id: SHELL_ID, "location[directory]": WORK }),
+        shellKilledReport,
+        event("shell.exited", { id: SHELL_ID, status: "killed" }),
+        reply("shell.remove", null),
+        out("session.interrupt", { sessionID: SESSION }),
+        reply("session.interrupt", { interrupted: true }),
+        event("session.execution.interrupted", { sessionID: SESSION }),
+      ]);
+      const { seen, until, settled } = yield* watchShell(runtime);
+      yield* runtime.startTurn(turnInput(thread));
+      yield* until(() => seen.ended.length === 1 && seen.listed);
+      yield* runtime.startTurn(secondTurn(thread));
+      yield* runtime.interruptTurn({
+        providerThread: thread,
+        providerTurnId: yield* secondProviderTurnId,
+        requestRuntimeRestart: true,
+      });
+      yield* until(() => settled() && seen.ended.length === 2);
+      assert.deepEqual(seen.ended, ["completed", "interrupted"]);
+      assert.equal(seen.status, "interrupted");
+      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect.each([
+    {
+      name: "settles a shell that exited",
+      read: shellInfo("exited", 0),
+      expected: "completed",
+    },
+    {
+      name: "fails a shell that exited non-zero",
+      read: shellInfo("exited", 3),
+      expected: "failed",
+    },
+    {
+      name: "settles a shell that was killed",
+      read: shellInfo("killed"),
+      expected: "interrupted",
+    },
+    {
+      name: "settles a shell the server forgot",
+      read: shellGone,
+      expected: "interrupted",
+    },
+    {
+      name: "settles a shell in a lost directory",
+      read: locationGone("shell.get"),
+      expected: "interrupted",
+    },
+  ])("$name after the stream came back", ({ read, expected }) =>
+    Effect.gen(function* () {
+      const { runtime, thread } = yield* resumed([
+        ...shellTurn,
+        { type: "runtime_exit", status: "success" } as const,
+        out("event.subscribe"),
+        out("session.active"),
+        replyData("session.active", {}),
+        ...shellRead(read),
+      ]);
+      const { seen, until, settled } = yield* watchShell(runtime);
+      yield* runtime.startTurn(turnInput(thread));
+      yield* until(settled);
+      assert.equal(seen.status, expected);
+      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("keeps a running shell and foreground subagent across a reconnect", () =>
+    Effect.gen(function* () {
+      const { runtime, thread } = yield* resumed([
+        out("session.prompt", { sessionID: SESSION, id: PROMPT_ID, text: "<any>" }),
+        promptAccepted,
+        event("session.execution.started", { sessionID: SESSION }),
+        ...shellLaunch,
+        // The child is not bound yet while its foreground tool input is streaming.
+        event("session.tool.input.started", {
+          sessionID: SESSION,
+          assistantMessageID: "msg_assistant",
+          id: "call-foreground",
+          name: "subagent",
+        }),
+        ...reconnected({ [SESSION]: { type: "running" } }),
+        ...shellRead(shellInfo("running")),
+        ...openRequests([]),
+        event("session.model.selected", {
+          sessionID: SESSION,
+          model: { id: "reconnected", providerID: "opencode" },
+        }),
+      ]);
+      const events = yield* runtime.events.pipe(
+        Stream.takeUntil(
+          (event) =>
+            event.type === "provider_thread.updated" &&
+            event.providerThread.nativeMetadata?.modelSelection?.model === "opencode/reconnected",
+        ),
+        Stream.runCollect,
+        Effect.forkScoped,
+      );
+      yield* runtime.startTurn(turnInput(thread));
+      const collected = yield* Fiber.join(events);
+      assert.deepEqual(
+        collected.flatMap((event) =>
+          event.type === "subagent.updated" ? [event.subagent.status] : [],
+        ),
+        ["running"],
+      );
+      assert.equal(
+        collected
+          .flatMap((event) => (event.type === "turn_item.updated" ? [event.turnItem] : []))
+          .findLast((item) => item.nativeItemRef?.nativeId?.endsWith(shellTool.id))?.status,
+        "running",
+      );
+      assert.isTrue(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("settles a background shell as failed when the stream cannot come back", () =>
+    Effect.gen(function* () {
+      const { runtime, thread } = yield* resumed([
+        ...shellTurn,
+        { type: "runtime_exit", status: "success" } as const,
+      ]);
+      const { seen, until, settled } = yield* watchShell(runtime);
+      yield* runtime.startTurn(turnInput(thread));
+      yield* until(() => seen.ended.length === 1);
+      yield* TestClock.adjust("8 seconds");
+      yield* until(settled);
+      assert.equal(seen.status, "failed");
+      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+    }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
   );
 
   it.effect("re-registers T3 MCP each turn and drops its instructions when adding fails", () =>
@@ -5203,10 +5550,13 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
   );
 });
 
-const providerTurnId = Effect.gen(function* () {
-  const ids = yield* IdAllocator.IdAllocatorV2;
-  return ids.derive.providerTurn({
-    driver: OPENCODE_PROVIDER,
-    nativeTurnId: `${SESSION}:attempt:attempt:opencode2-adapter`,
-  });
-}).pipe(Effect.provide(IdAllocator.layer));
+const providerTurnIdOf = (attempt: string) =>
+  Effect.gen(function* () {
+    const ids = yield* IdAllocator.IdAllocatorV2;
+    return ids.derive.providerTurn({
+      driver: OPENCODE_PROVIDER,
+      nativeTurnId: `${SESSION}:attempt:${attempt}`,
+    });
+  }).pipe(Effect.provide(IdAllocator.layer));
+const providerTurnId = providerTurnIdOf("attempt:opencode2-adapter");
+const secondProviderTurnId = providerTurnIdOf("attempt:opencode2-adapter:2");
