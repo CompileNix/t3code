@@ -129,9 +129,17 @@ const readEvents = HttpClient.get("/api/event", {
       Stream.pipeThroughChannel(Sse.decode()),
       Stream.filterMapEffect((frame) => {
         const decoded = decodeEvent(frame.data);
-        return Result.isSuccess(decoded)
-          ? Effect.succeed(Result.succeed<OpenCode2StreamEvent>(decoded.success))
-          : undecodable(frame.data);
+        if (Result.isSuccess(decoded)) {
+          return Effect.succeed(Result.succeed<OpenCode2StreamEvent>(decoded.success));
+        }
+        const repaired = fillCompactionEventRecent(frame.data);
+        if (repaired !== null) {
+          const decodedRepair = decodeEvent(repaired);
+          if (Result.isSuccess(decodedRepair)) {
+            return Effect.succeed(Result.succeed<OpenCode2StreamEvent>(decodedRepair.success));
+          }
+        }
+        return undecodable(frame.data);
       }),
     ),
   ),
@@ -166,6 +174,35 @@ const fillCompactionRecent = (message: unknown) =>
   isCompactionWithRecent(message) && !("recent" in message)
     ? { ...message, recent: isLegacyMetadata(message.metadata) ? message.metadata.recent : "" }
     : message;
+
+const COMPACTION_EVENT_RECENT_TYPES = new Set([
+  "session.compaction.started",
+  "session.compaction.ended",
+]);
+
+/**
+ * OpenCode 2.1 dropped `recent` from compaction events too, but the bundled 2.0.28
+ * schema still requires it. Repair the frame so the event decodes; T3 never reads it.
+ */
+const fillCompactionEventRecent = (data: string): string | null => {
+  if (!data.includes("session.compaction.")) return null;
+  let event: unknown;
+  try {
+    event = JSON.parse(data);
+  } catch {
+    return null;
+  }
+  if (typeof event !== "object" || event === null) return null;
+  const record = event as Record<string, unknown>;
+  if (typeof record.type !== "string" || !COMPACTION_EVENT_RECENT_TYPES.has(record.type)) {
+    return null;
+  }
+  const payload = record.data;
+  if (typeof payload !== "object" || payload === null) return null;
+  const dataRecord = payload as Record<string, unknown>;
+  if (typeof dataRecord.recent === "string") return null;
+  return JSON.stringify({ ...record, data: { ...dataRecord, recent: "" } });
+};
 
 /**
  * OpenCode 2.1 dropped a compaction's `recent`, which the bundled 2.0.28 schema requires.

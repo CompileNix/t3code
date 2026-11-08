@@ -29,6 +29,27 @@ function asFiniteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function parseEpochMs(value: string): number | null {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function latestCompletedCompaction(
+  entries: ReadonlyArray<{ readonly item: ThreadStructureTurnItem }>,
+): Extract<ThreadStructureTurnItem, { readonly type: "compaction" }> | null {
+  let latest: Extract<ThreadStructureTurnItem, { readonly type: "compaction" }> | null = null;
+  for (const { item } of entries) {
+    if (item.type !== "compaction" || item.status !== "completed") continue;
+    if (
+      latest === null ||
+      DateTime.toEpochMillis(item.updatedAt) >= DateTime.toEpochMillis(latest.updatedAt)
+    ) {
+      latest = item;
+    }
+  }
+  return latest;
+}
+
 type NullableContextWindowUsage = {
   readonly [Key in keyof ThreadTokenUsageSnapshot]: undefined extends ThreadTokenUsageSnapshot[Key]
     ? Exclude<ThreadTokenUsageSnapshot[Key], undefined> | null
@@ -79,7 +100,14 @@ export function deriveLatestContextWindowSnapshot(
   liveUsage?: OrchestrationV2ProviderTurnTokenUsage | null,
   providerThread?: Pick<OrchestrationV2ProviderThread, "contextUsage" | "updatedAt"> | null,
 ): ContextWindowSnapshot | null {
-  if (liveUsage != null) {
+  const latestCompaction = latestCompletedCompaction(entries);
+  const compactionAt =
+    latestCompaction === null ? null : DateTime.toEpochMillis(latestCompaction.updatedAt);
+  // A report older than the newest completed compaction describes the context it replaced.
+  const isCurrentReport = (reportedAt: number | null) =>
+    compactionAt === null || reportedAt === null || reportedAt >= compactionAt;
+
+  if (liveUsage != null && isCurrentReport(parseEpochMs(liveUsage.updatedAt))) {
     const usedTokens = Math.max(0, liveUsage.usedTokens);
     const maxTokens = liveUsage.maxTokens ?? null;
     const usedPercentage =
@@ -116,7 +144,8 @@ export function deriveLatestContextWindowSnapshot(
   if (
     providerUsage !== null &&
     providerUsage !== undefined &&
-    providerUsageUpdatedAt !== undefined
+    providerUsageUpdatedAt !== undefined &&
+    isCurrentReport(DateTime.toEpochMillis(providerUsageUpdatedAt))
   ) {
     const maxTokens = asFiniteNumber(providerUsage.maxTokens);
     const usedTokens = providerUsage.usedTokens;
@@ -146,50 +175,44 @@ export function deriveLatestContextWindowSnapshot(
       updatedAt: DateTime.formatIso(providerUsageUpdatedAt),
     };
   }
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const entry = entries[index];
-    if (!entry || entry.item.type !== "compaction") {
-      continue;
-    }
-    const payload = entry.item;
-    const usedTokens = asFiniteNumber(payload.afterTokenCount);
-    if (usedTokens === null || usedTokens < 0) {
-      continue;
-    }
-
-    const maxTokens = null;
-    const usedPercentage =
-      maxTokens !== null && maxTokens > 0 ? Math.min(100, (usedTokens / maxTokens) * 100) : null;
-    const remainingTokens =
-      maxTokens !== null ? Math.max(0, Math.round(maxTokens - usedTokens)) : null;
-    const remainingPercentage = usedPercentage !== null ? Math.max(0, 100 - usedPercentage) : null;
-
-    return {
-      usedTokens,
-      totalProcessedTokens: asFiniteNumber(payload.beforeTokenCount),
-      maxTokens,
-      remainingTokens,
-      usedPercentage,
-      remainingPercentage,
-      inputTokens: null,
-      cachedInputTokens: null,
-      outputTokens: null,
-      reasoningOutputTokens: null,
-      lastUsedTokens: null,
-      lastInputTokens: null,
-      lastCachedInputTokens: null,
-      lastOutputTokens: null,
-      lastReasoningOutputTokens: null,
-      toolUses: null,
-      durationMs: null,
-      compactsAutomatically: true,
-      autoCompactThreshold: null,
-      cost: null,
-      updatedAt: DateTime.formatIso(payload.startedAt ?? payload.updatedAt),
-    };
+  if (latestCompaction === null) {
+    return null;
+  }
+  const usedTokens = asFiniteNumber(latestCompaction.afterTokenCount);
+  if (usedTokens === null || usedTokens < 0) {
+    return null;
   }
 
-  return null;
+  const maxTokens = null;
+  const usedPercentage =
+    maxTokens !== null && maxTokens > 0 ? Math.min(100, (usedTokens / maxTokens) * 100) : null;
+  const remainingTokens =
+    maxTokens !== null ? Math.max(0, Math.round(maxTokens - usedTokens)) : null;
+  const remainingPercentage = usedPercentage !== null ? Math.max(0, 100 - usedPercentage) : null;
+
+  return {
+    usedTokens,
+    totalProcessedTokens: asFiniteNumber(latestCompaction.beforeTokenCount),
+    maxTokens,
+    remainingTokens,
+    usedPercentage,
+    remainingPercentage,
+    inputTokens: null,
+    cachedInputTokens: null,
+    outputTokens: null,
+    reasoningOutputTokens: null,
+    lastUsedTokens: null,
+    lastInputTokens: null,
+    lastCachedInputTokens: null,
+    lastOutputTokens: null,
+    lastReasoningOutputTokens: null,
+    toolUses: null,
+    durationMs: null,
+    compactsAutomatically: true,
+    autoCompactThreshold: null,
+    cost: null,
+    updatedAt: DateTime.formatIso(latestCompaction.startedAt ?? latestCompaction.updatedAt),
+  };
 }
 
 export function hasDismissedResumeCompaction(

@@ -19,6 +19,33 @@ import {
 
 const decodeTokenUsage = Schema.decodeSync(OrchestrationV2ProviderTurnTokenUsage);
 
+function compactionEntry(
+  updatedAt: string,
+  tokenCounts: { readonly beforeTokenCount?: number; readonly afterTokenCount?: number } = {},
+) {
+  return {
+    item: {
+      id: `compaction-${updatedAt}` as never,
+      threadId: "thread-1" as never,
+      runId: null,
+      nodeId: null,
+      providerThreadId: null,
+      providerTurnId: null,
+      nativeItemRef: null,
+      parentItemId: null,
+      ordinal: 1,
+      status: "completed" as const,
+      title: null,
+      startedAt: null,
+      completedAt: null,
+      updatedAt: DateTime.makeUnsafe(updatedAt),
+      type: "compaction" as const,
+      driver: null,
+      ...tokenCounts,
+    },
+  };
+}
+
 describe("V2 context window presentation", () => {
   it("uses retained compaction token data when available", () => {
     const snapshot = deriveLatestContextWindowSnapshot([
@@ -47,6 +74,61 @@ describe("V2 context window presentation", () => {
     ]);
     expect(snapshot?.usedTokens).toBe(2_000);
     expect(snapshot?.totalProcessedTokens).toBe(10_000);
+  });
+
+  it("uses a compaction that completed after the live report", () => {
+    const usage = decodeTokenUsage({
+      usedTokens: 182_255,
+      maxTokens: 249_036,
+      updatedAt: "2026-11-08T01:26:57.767Z",
+    });
+    const snapshot = deriveLatestContextWindowSnapshot(
+      [compactionEntry("2026-11-08T15:11:09.230Z", { afterTokenCount: 9_000 })],
+      usage,
+    );
+
+    expect(snapshot?.usedTokens).toBe(9_000);
+  });
+
+  it("does not keep live usage that predates a compaction without token counts", () => {
+    const usage = decodeTokenUsage({
+      usedTokens: 182_255,
+      maxTokens: 249_036,
+      updatedAt: "2026-11-08T01:26:57.767Z",
+    });
+    const snapshot = deriveLatestContextWindowSnapshot(
+      [compactionEntry("2026-11-08T15:11:09.230Z")],
+      usage,
+    );
+
+    expect(snapshot).toBeNull();
+  });
+
+  it("keeps live usage reported after a compaction", () => {
+    const usage = decodeTokenUsage({
+      usedTokens: 9_000,
+      maxTokens: 249_036,
+      updatedAt: "2026-11-08T15:19:36.147Z",
+    });
+    const snapshot = deriveLatestContextWindowSnapshot(
+      [compactionEntry("2026-11-08T15:11:09.230Z")],
+      usage,
+    );
+
+    expect(snapshot?.usedTokens).toBe(9_000);
+  });
+
+  it("does not keep provider-thread usage that predates a compaction", () => {
+    const snapshot = deriveLatestContextWindowSnapshot(
+      [compactionEntry("2026-11-08T15:11:09.230Z")],
+      null,
+      {
+        contextUsage: { usedTokens: 182_255, maxTokens: 249_036 },
+        updatedAt: DateTime.makeUnsafe("2026-11-08T01:26:57.767Z"),
+      },
+    );
+
+    expect(snapshot).toBeNull();
   });
 });
 
