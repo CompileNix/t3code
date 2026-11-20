@@ -9,6 +9,7 @@ import * as Scope from "effect/Scope";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
+import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import * as UrlParams from "effect/http/UrlParams";
 import * as HttpClient from "effect/http/HttpClient";
@@ -510,6 +511,65 @@ describe("OpenCode2Client usage limits", () => {
         if (reason === "unsupported") assert.strictEqual(result?.unavailable?.message, undefined);
         if ("message" in body)
           assert.include(result?.unavailable?.message ?? "", "OpenCode Console budgets");
+      }
+    }),
+  );
+});
+
+const readEvents = (frames: ReadonlyArray<unknown>) =>
+  Effect.gen(function* () {
+    const body = frames.map((frame) => `data: ${JSON.stringify(frame)}\n\n`).join("");
+    const transport = Layer.succeed(
+      HttpClient.HttpClient,
+      HttpClient.make((request) =>
+        Effect.succeed(
+          HttpClientResponse.fromWeb(
+            request,
+            new Response(body, { headers: { "content-type": "text/event-stream" } }),
+          ),
+        ),
+      ),
+    );
+    const opencode = yield* OpenCode2Client.OpenCode2Client.pipe(
+      Effect.provide(OpenCode2Client.layer.pipe(Layer.provide(transport))),
+    );
+    const { events } = yield* opencode.connect({
+      baseUrl: "http://127.0.0.1:4096",
+      password: "test-password",
+    });
+    const stream = yield* events;
+    return yield* stream.pipe(Stream.take(2), Stream.runCollect);
+  });
+
+describe("OpenCode2Client compaction events", () => {
+  it.effect("reads compaction events that omit the dropped recent field", () =>
+    Effect.gen(function* () {
+      const events = yield* readEvents([
+        {
+          id: "evt_compact_start",
+          created: 1,
+          type: "session.compaction.started",
+          data: { sessionID: "ses_repro", reason: "manual", inputID: "msg_repro" },
+          durable: { aggregateID: "ses_repro", seq: 1, version: 1 },
+        },
+        {
+          id: "evt_compact_end",
+          created: 2,
+          type: "session.compaction.ended",
+          data: { sessionID: "ses_repro", reason: "manual", text: "summary" },
+          durable: { aggregateID: "ses_repro", seq: 2, version: 1 },
+        },
+      ]);
+
+      const [started, ended] = [...events];
+      assert.strictEqual(started?.type, "session.compaction.started");
+      if (started?.type === "session.compaction.started") {
+        assert.strictEqual(started.data.recent, "");
+      }
+      assert.strictEqual(ended?.type, "session.compaction.ended");
+      if (ended?.type === "session.compaction.ended") {
+        assert.strictEqual(ended.data.recent, "");
+        assert.strictEqual(ended.data.text, "summary");
       }
     }),
   );
