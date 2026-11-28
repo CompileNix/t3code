@@ -21,6 +21,17 @@ Configure **Settings → Chat → Tool calls in chat** (web and desktop) or **Se
 
 Approvals, questions, and errors are always shown. On web and desktop, opening Find temporarily reveals hidden intermediate messages.
 
+## Follow the current step
+
+On web and desktop, **Auto-expand current reasoning** and **Auto-expand current shell command** in
+**Settings → Chat** open the running turn's activity as it happens. The latest reasoning stays open
+until newer reasoning starts. Each shell command stays open with its output while it runs, and
+folds once it has finished and a newer command has started. Other tool calls, such as reads and
+edits, stay folded. The group folds when the agent writes a message or asks you something, and
+everything folds when the turn ends. A group or step you open or close yourself stays the way you
+left it. Both settings are off by default, and the shell command setting has no effect while **Tool calls
+in chat** hides every call.
+
 ## Screen reader announcements
 
 On web and desktop, configure **Settings → Chat → Screen reader announcements** to hear turn progress for the open thread (per device/browser):

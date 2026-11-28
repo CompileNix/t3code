@@ -2014,6 +2014,111 @@ describe("deriveMessagesTimelineRows", () => {
     });
   });
 
+  it("auto-expands the running group's latest thought and current tools when enabled", () => {
+    type WorkEntry = Extract<
+      Parameters<typeof deriveMessagesTimelineRows>[0]["timelineEntries"][number],
+      { kind: "work" }
+    >;
+    const work = (
+      id: string,
+      at: string,
+      fields: Omit<WorkEntry["entry"], "id" | "createdAt" | "runId" | "label">,
+    ): WorkEntry => ({
+      id: `${id}-entry`,
+      kind: "work",
+      createdAt: at,
+      entry: { id, createdAt: at, runId: "turn-1" as never, label: id, ...fields },
+    });
+    const thought = (id: string, at: string) =>
+      work(id, at, {
+        itemType: "reasoning",
+        detail: `${id} text`,
+        tone: "thinking" as const,
+        toolLifecycleStatus: "completed" as const,
+      });
+    const command = (id: string, at: string, status: "inProgress" | "completed") =>
+      work(id, at, {
+        command: `run ${id}`,
+        requestKind: "command",
+        tone: "tool" as const,
+        toolLifecycleStatus: status,
+      });
+    const timelineEntries = [
+      thought("old-thought", "2026-01-01T00:00:01Z"),
+      command("slow-command", "2026-01-01T00:00:02Z", "inProgress"),
+      command("finished-command", "2026-01-01T00:00:03Z", "completed"),
+      thought("new-thought", "2026-01-01T00:00:04Z"),
+      command("latest-command", "2026-01-01T00:00:05Z", "completed"),
+      work("running-read", "2026-01-01T00:00:06Z", {
+        requestKind: "file-read",
+        tone: "tool" as const,
+        toolLifecycleStatus: "inProgress" as const,
+      }),
+    ];
+    const rows = (overrides: Partial<Parameters<typeof deriveMessagesTimelineRows>[0]> = {}) =>
+      deriveMessagesTimelineRows({
+        timelineEntries,
+        latestRun: {
+          runId: "turn-1" as never,
+          status: "running",
+          startedAt: "2026-01-01T00:00:00Z",
+          completedAt: null,
+        },
+        isWorking: true,
+        activeTurnStartedAt: "2026-01-01T00:00:00Z",
+        turnDiffSummaries: [],
+        supportsConversationRollback: false,
+        ...overrides,
+      });
+    const details = (result: MessagesTimelineRow[]) =>
+      result.find((row) => row.kind === "work" && row.isExpandedToolGroup);
+    const groupId = "work-group:old-thought-entry";
+
+    const off = rows();
+    expect(off.find((row) => row.kind === "work-live")).toMatchObject({ expanded: false });
+    expect(details(off)).toBeUndefined();
+
+    expect(details(rows({ autoExpandCurrentReasoning: true }))).toMatchObject({
+      autoExpandedEntryIds: ["new-thought"],
+    });
+    const thinkingOnly = rows({
+      autoExpandCurrentReasoning: true,
+      timelineEntries: [thought("first-thought", "2026-01-01T00:00:01Z")],
+    });
+    expect(details(thinkingOnly)).toMatchObject({ autoExpandedEntryIds: ["first-thought"] });
+    // Only shell commands open, and a finished one stays open until a newer command starts.
+    expect(details(rows({ autoExpandCurrentCommands: true }))).toMatchObject({
+      autoExpandedEntryIds: ["slow-command", "latest-command"],
+    });
+    const both = rows({ autoExpandCurrentReasoning: true, autoExpandCurrentCommands: true });
+    expect(both.find((row) => row.kind === "work-live")).toMatchObject({ groupId, expanded: true });
+    expect(details(both)).toMatchObject({
+      autoExpandedEntryIds: ["new-thought", "slow-command", "latest-command"],
+    });
+
+    // The reader's collapse wins over auto-expansion.
+    const closed = rows({
+      autoExpandCurrentCommands: true,
+      collapsedWorkGroupIds: new Set([groupId]),
+    });
+    expect(closed.find((row) => row.kind === "work-live")).toMatchObject({ expanded: false });
+    expect(details(closed)).toBeUndefined();
+
+    // A finished turn folds as before.
+    const ended = rows({
+      autoExpandCurrentReasoning: true,
+      autoExpandCurrentCommands: true,
+      isWorking: false,
+      latestRun: {
+        runId: "turn-1" as never,
+        status: "completed",
+        startedAt: "2026-01-01T00:00:00Z",
+        completedAt: "2026-01-01T00:00:06Z",
+      },
+    });
+    expect(details(ended)).toBeUndefined();
+  });
+
   it("keeps an actually running tool in the shared activity row", () => {
     const rows = deriveMessagesTimelineRows({
       timelineEntries: [

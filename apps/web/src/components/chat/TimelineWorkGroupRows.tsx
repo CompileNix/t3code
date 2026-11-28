@@ -70,12 +70,14 @@ export const WorkGroupSection = memo(function WorkGroupSection({
   groupedEntries,
   isExpandedToolGroup,
   displayLabel,
+  autoExpandedEntryIds,
 }: {
   anchorKey: string;
   disclosureAnchorKey?: string;
   groupedEntries: Extract<MessagesTimelineRow, { kind: "work" }>["groupedEntries"];
   isExpandedToolGroup: boolean;
   displayLabel?: string | undefined;
+  autoExpandedEntryIds?: ReadonlyArray<string> | undefined;
 }) {
   const {
     workspaceRoot,
@@ -106,6 +108,7 @@ export const WorkGroupSection = memo(function WorkGroupSection({
         entries={nonEmptyEntries}
         groupedEntries={groupedEntries}
         workspaceRoot={workspaceRoot}
+        autoExpandedEntryIds={autoExpandedEntryIds}
       />
     );
   }
@@ -191,12 +194,14 @@ function ExpandedWorkGroupEntries({
   entries,
   groupedEntries,
   workspaceRoot,
+  autoExpandedEntryIds: autoExpandedEntryIdList,
 }: {
   anchorKey: string;
   disclosureAnchorKey: string;
   entries: TimelineWorkEntry[];
   groupedEntries: ReadonlyArray<TimelineWorkEntry>;
   workspaceRoot: string | undefined;
+  autoExpandedEntryIds: ReadonlyArray<string> | undefined;
 }) {
   const {
     workGroupViewState: viewState,
@@ -224,8 +229,10 @@ function ExpandedWorkGroupEntries({
   }
 
   const viewedImages = useWorkGroupViewedImages(groupedEntries);
+  const autoExpandedEntryIds = new Set(autoExpandedEntryIdList);
   const groupView = {
     state: viewState,
+    autoExpandedEntryIds,
     viewedImages,
     onToggleEntry: (collapsed: boolean, entryId: string) =>
       onToggleWorkEntry(disclosureAnchorKey, collapsed, entryId),
@@ -292,7 +299,11 @@ function ExpandedWorkGroupEntries({
   const updateExpandedContentHeight = () => {
     const state = listRef.current?.getState();
     let height = 0;
-    for (const entryId of viewState.expandedEntries) {
+    const openEntryIds = new Set(viewState.expandedEntries);
+    for (const entryId of autoExpandedEntryIds) {
+      if (!viewState.collapsedEntries.has(entryId)) openEntryIds.add(entryId);
+    }
+    for (const entryId of openEntryIds) {
       if (state?.indexByKey(entryId) === undefined) continue;
       height += Math.max(
         0,
@@ -483,7 +494,7 @@ export function ThinkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind:
       type="button"
       className="group/live-work flex min-h-6 w-full max-w-full cursor-pointer items-center rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
       aria-expanded={row.expanded === true}
-      onClick={() => ctx.onToggleWorkGroup(groupId, row.id)}
+      onClick={() => ctx.onToggleWorkGroup(groupId, row.id, row.expanded === true)}
     >
       {activity}
     </button>
@@ -650,7 +661,7 @@ export function LiveWorkEntryTimelineRow({
           : undefined
       }
       aria-expanded={row.expanded}
-      onClick={() => ctx.onToggleWorkGroup(row.groupId, row.id)}
+      onClick={() => ctx.onToggleWorkGroup(row.groupId, row.id, row.expanded)}
     >
       {thoughtLine ? (
         <WorkLogRow
@@ -732,7 +743,7 @@ export function WorkGroupToggleTimelineRow({
       expanded={row.expanded}
       createdAt={row.createdAt}
       timestampFormat={ctx.timestampFormat}
-      onToggle={() => ctx.onToggleWorkGroup(row.groupId, row.id)}
+      onToggle={() => ctx.onToggleWorkGroup(row.groupId, row.id, row.expanded)}
     />
   );
 }

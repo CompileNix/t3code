@@ -159,6 +159,7 @@ function timelineListStateFor(identity: string): {
     workGroupViewState: rememberedPosition?.disclosures?.workGroupState ?? {
       scrollPositions: new Map(),
       expandedEntries: new Set(),
+      collapsedEntries: new Set(),
     },
   };
 }
@@ -459,6 +460,9 @@ const ConversationTimeline = memo(function ConversationTimeline({
   const [expandedWorkGroupIds, setExpandedWorkGroupIds] = useState<ReadonlySet<string>>(
     () => listState.rememberedPosition?.disclosures?.workGroups ?? new Set(),
   );
+  const [collapsedWorkGroupIds, setCollapsedWorkGroupIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [expandedAttemptIds, setExpandedAttemptIds] = useState<ReadonlySet<RunAttemptId>>(
     () => listState.rememberedPosition?.disclosures?.attempts ?? new Set(),
   );
@@ -499,6 +503,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
     paintedExpandedAttemptIds = rememberedPosition?.disclosures?.attempts ?? new Set();
     setExpandedRunIds(paintedExpandedRunIds);
     setExpandedWorkGroupIds(paintedExpandedWorkGroupIds);
+    setCollapsedWorkGroupIds(new Set());
     setExpandedAttemptIds(paintedExpandedAttemptIds);
   }
   const citationThreadRef = parseScopedThreadKey(routeThreadKey);
@@ -593,18 +598,22 @@ const ConversationTimeline = memo(function ConversationTimeline({
       return next;
     });
   };
-  const onToggleWorkGroup = (groupId: string, anchorKey: string) => {
+  const onToggleWorkGroup = (groupId: string, anchorKey: string, expanded: boolean) => {
     preserveDisclosurePosition(
       anchorKey,
-      expandedWorkGroupIds.has(groupId) ? undefined : { contentKey: `${groupId}:details` },
+      expanded ? undefined : { contentKey: `${groupId}:details` },
     );
     setExpandedWorkGroupIds((existing) => {
       const next = new Set(existing);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
+      if (expanded) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+    // Remembers closing a group that is open only because it is the running one.
+    setCollapsedWorkGroupIds((existing) => {
+      const next = new Set(existing);
+      if (expanded) next.add(groupId);
+      else next.delete(groupId);
       return next;
     });
   };
@@ -659,6 +668,12 @@ const ConversationTimeline = memo(function ConversationTimeline({
   }
 
   const preferredToolCallVisibility = useClientSettings((settings) => settings.toolCallVisibility);
+  const autoExpandCurrentReasoning = useClientSettings(
+    (settings) => settings.autoExpandCurrentReasoning,
+  );
+  const autoExpandCurrentCommands = useClientSettings(
+    (settings) => settings.autoExpandCurrentCommands,
+  );
   const screenReaderAnnouncements = useClientSettings(
     (settings) => settings.screenReaderAnnouncements,
   );
@@ -770,6 +785,9 @@ const ConversationTimeline = memo(function ConversationTimeline({
     expandedRunIds: visibleExpandedRunIds,
     expandedAttemptIds: visibleExpandedAttemptIds,
     expandedWorkGroupIds,
+    collapsedWorkGroupIds,
+    autoExpandCurrentReasoning,
+    autoExpandCurrentCommands,
     isWorking,
     runlessWorkActive,
     activeTurnStartedAt,
@@ -1731,6 +1749,7 @@ const TimelineRowContent = memo(function TimelineRowContent({ row }: { row: Time
               groupedEntries={row.groupedEntries}
               isExpandedToolGroup={row.isExpandedToolGroup}
               displayLabel={row.displayLabel}
+              autoExpandedEntryIds={row.autoExpandedEntryIds}
             />
           ) : null}
           {row.kind === "work-live" ? <LiveWorkEntryTimelineRow row={row} /> : null}

@@ -98,7 +98,7 @@ export interface TimelineRowSharedState {
   onFileOpen: (attachment: ChatFileAttachment) => void;
   onFileDownload: (attachment: ChatFileAttachment) => void;
   openPullRequest: (event: MouseEvent<HTMLElement>, url: string) => void;
-  onToggleWorkGroup: (groupId: string, anchorKey: string) => void;
+  onToggleWorkGroup: (groupId: string, anchorKey: string, expanded: boolean) => void;
   onToggleWorkEntry: (anchorKey: string, collapsed: boolean, entryId?: string) => void;
   onWorkEntryContentReady?: (anchorKey: string, entryId: string) => void;
   onCancelWorktreeSetup: (() => void) | null;
@@ -129,6 +129,8 @@ export const TimelineRowActivityCtx = createContext<TimelineRowActivityState>(nu
 export interface WorkGroupViewState {
   scrollPositions: Map<string, WorkGroupScrollAnchor>;
   expandedEntries: Set<string>;
+  /** Entries the reader closed while they were auto-expanded. */
+  collapsedEntries: Set<string>;
 }
 
 /** One image the group's agent viewed; `item` is null until its URL resolves. */
@@ -139,6 +141,7 @@ export interface WorkGroupViewedImage {
 
 export const WorkGroupViewCtx = createContext<{
   state: WorkGroupViewState;
+  autoExpandedEntryIds: ReadonlySet<string>;
   viewedImages: ReadonlyArray<WorkGroupViewedImage>;
   onToggleEntry: (collapsed: boolean, entryId: string) => void;
   onContentReady?: ((entryId: string) => void) | undefined;

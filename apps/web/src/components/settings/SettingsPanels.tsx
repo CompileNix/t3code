@@ -600,6 +600,12 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.toolCallVisibility !== DEFAULT_UNIFIED_SETTINGS.toolCallVisibility
       ? [gt("Tool calls in chat")]
       : []),
+    ...(settings.autoExpandCurrentReasoning !== DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentReasoning
+      ? [gt("Auto-expand current reasoning")]
+      : []),
+    ...(settings.autoExpandCurrentCommands !== DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentCommands
+      ? [gt("Auto-expand current shell command")]
+      : []),
     ...(settings.screenReaderAnnouncements !== DEFAULT_UNIFIED_SETTINGS.screenReaderAnnouncements
       ? [gt("Screen reader announcements")]
       : []),
@@ -731,6 +737,8 @@ export function useSettingsRestore(onRestored?: () => void) {
       followUpBehavior: DEFAULT_UNIFIED_SETTINGS.followUpBehavior,
       sideThreadOpenTarget: DEFAULT_UNIFIED_SETTINGS.sideThreadOpenTarget,
       toolCallVisibility: DEFAULT_UNIFIED_SETTINGS.toolCallVisibility,
+      autoExpandCurrentReasoning: DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentReasoning,
+      autoExpandCurrentCommands: DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentCommands,
       screenReaderAnnouncements: DEFAULT_UNIFIED_SETTINGS.screenReaderAnnouncements,
       screenReaderWindowTitle: DEFAULT_UNIFIED_SETTINGS.screenReaderWindowTitle,
       environmentIdentificationMode: DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode,
@@ -1472,6 +1480,8 @@ export function ChatSettingsPanel() {
 
       <SettingsSection id="activity" title={gt("Activity")}>
         <ToolCallVisibilityRow />
+        <AutoExpandCurrentReasoningRow />
+        <AutoExpandCurrentCommandsRow />
       </SettingsSection>
 
       <SettingsSection id="screen-reader" title={gt("Screen reader")}>
@@ -1533,6 +1543,83 @@ function ToolCallVisibilityRow() {
             ))}
           </SelectPopup>
         </Select>
+      }
+    />
+  );
+}
+
+function AutoExpandCurrentReasoningRow() {
+  const setting = useSearchableSetting();
+  const gt = useGT();
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  return (
+    <SettingsRow
+      {...setting("auto-expand-current-reasoning")}
+      description={gt(
+        "While a turn runs, open the agent's latest reasoning and fold it when newer reasoning starts.",
+      )}
+      resetAction={
+        settings.autoExpandCurrentReasoning !==
+        DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentReasoning ? (
+          <SettingResetButton
+            ariaLabel={gt("Reset auto-expand current reasoning to default")}
+            onClick={() =>
+              updateSettings({
+                autoExpandCurrentReasoning: DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentReasoning,
+              })
+            }
+          />
+        ) : null
+      }
+      control={
+        <Switch
+          checked={settings.autoExpandCurrentReasoning}
+          onCheckedChange={(checked) => updateSettings({ autoExpandCurrentReasoning: checked })}
+          aria-label={gt("Auto-expand current reasoning")}
+        />
+      }
+    />
+  );
+}
+
+function AutoExpandCurrentCommandsRow() {
+  const setting = useSearchableSetting();
+  const gt = useGT();
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  const toolCallsHidden =
+    settings.toolCallVisibility === "hideAll" || settings.toolCallVisibility === "zen";
+  return (
+    <SettingsRow
+      {...setting("auto-expand-current-commands")}
+      description={
+        toolCallsHidden
+          ? gt("Tool calls are hidden in chat, so there is nothing to expand.")
+          : gt(
+              "While a turn runs, open each shell command and its output, and fold it when the next shell command starts.",
+            )
+      }
+      resetAction={
+        settings.autoExpandCurrentCommands !==
+        DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentCommands ? (
+          <SettingResetButton
+            ariaLabel={gt("Reset auto-expand current shell command to default")}
+            onClick={() =>
+              updateSettings({
+                autoExpandCurrentCommands: DEFAULT_UNIFIED_SETTINGS.autoExpandCurrentCommands,
+              })
+            }
+          />
+        ) : null
+      }
+      control={
+        <Switch
+          checked={settings.autoExpandCurrentCommands}
+          disabled={toolCallsHidden}
+          onCheckedChange={(checked) => updateSettings({ autoExpandCurrentCommands: checked })}
+          aria-label={gt("Auto-expand current shell command")}
+        />
       }
     />
   );

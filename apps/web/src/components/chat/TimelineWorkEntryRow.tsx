@@ -306,8 +306,13 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
       ? notificationChildThreadId(workEntry.projectedItem.item.source)
       : undefined;
   const groupView = use(WorkGroupViewCtx);
-  const [expanded, setExpanded] = useState(
-    () => groupView?.state.expandedEntries.has(workEntry.id) ?? false,
+  // The reader's own choice; null leaves the entry to auto-expansion.
+  const [chosenExpanded, setChosenExpanded] = useState<boolean | null>(() =>
+    groupView?.state.expandedEntries.has(workEntry.id)
+      ? true
+      : groupView?.state.collapsedEntries.has(workEntry.id)
+        ? false
+        : null,
   );
   const noticeMessage =
     workEntry.structuredPayload?.type === "system_notice"
@@ -323,6 +328,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
     measure();
     return observeResize(label, measure);
   }, [noticeMessage]);
+  const expanded = chosenExpanded ?? groupView?.autoExpandedEntryIds.has(workEntry.id) ?? false;
   const onInitialOutputReady = () => {
     if (groupView) groupView.onContentReady?.(workEntry.id);
     else props.onContentReady?.();
@@ -331,12 +337,17 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
     const next = !expanded;
     if (groupView) {
       groupView.onToggleEntry(!next, workEntry.id);
-      if (next) groupView.state.expandedEntries.add(workEntry.id);
-      else groupView.state.expandedEntries.delete(workEntry.id);
+      if (next) {
+        groupView.state.expandedEntries.add(workEntry.id);
+        groupView.state.collapsedEntries.delete(workEntry.id);
+      } else {
+        groupView.state.expandedEntries.delete(workEntry.id);
+        groupView.state.collapsedEntries.add(workEntry.id);
+      }
     } else {
       props.onToggleEntry?.(!next);
     }
-    setExpanded(next);
+    setChosenExpanded(next);
   };
   const failureItem = workEntry.projectedItem?.item;
   const pendingApproval =

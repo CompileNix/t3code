@@ -537,6 +537,22 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "auto-expand-current-reasoning",
+    title: msg("Auto-expand current reasoning"),
+    to: "/settings/chat",
+    searchTerms: [msg("open expand show thinking reasoning thoughts live running turn fold")],
+  },
+  {
+    id: "auto-expand-current-commands",
+    title: msg("Auto-expand current shell command"),
+    to: "/settings/chat",
+    searchTerms: [
+      msg(
+        "open expand show shell bash terminal commands output live running turn tool calls activity fold",
+      ),
+    ],
+  },
+  {
     id: "screen-reader-announcements",
     title: msg("Screen reader announcements"),
     to: "/settings/chat",

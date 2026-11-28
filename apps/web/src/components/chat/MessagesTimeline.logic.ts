@@ -558,6 +558,8 @@ type MessagesTimelineRowContent =
       groupedEntries: WorkLogEntry[];
       isExpandedToolGroup: boolean;
       displayLabel?: string;
+      /** Entries of the running group whose bodies open on their own. */
+      autoExpandedEntryIds?: ReadonlyArray<string>;
     }
   | {
       kind: "work-live";
@@ -717,6 +719,7 @@ function expandedWorkGroupRow(
   groupId: string,
   createdAt: string,
   groupedEntries: WorkLogEntry[],
+  autoExpandedEntryIds: ReadonlyArray<string> = [],
 ): Extract<MessagesTimelineRow, { kind: "work" }> {
   return {
     kind: "work",
@@ -724,7 +727,34 @@ function expandedWorkGroupRow(
     createdAt,
     groupedEntries,
     isExpandedToolGroup: true,
+    ...(autoExpandedEntryIds.length > 0 ? { autoExpandedEntryIds } : {}),
   };
+}
+
+/**
+ * The running group's entries that open on their own: the latest thought, and
+ * every shell command still running plus the latest one, so a finished command
+ * folds only once a newer command starts.
+ */
+function currentWorkAutoExpandedEntryIds(
+  entries: ReadonlyArray<WorkLogEntry>,
+  options: { reasoning: boolean; commands: boolean },
+): string[] {
+  const ids: string[] = [];
+  if (options.reasoning) {
+    const thought = entries.findLast(
+      (entry) => entry.itemType === "reasoning" && Boolean(entry.detail?.trim()),
+    );
+    if (thought) ids.push(thought.id);
+  }
+  if (options.commands) {
+    const commands = entries.filter((entry) => toolGroupAction(entry) === "command");
+    const latest = commands.at(-1);
+    for (const entry of commands) {
+      if (entry === latest || entry.toolLifecycleStatus === "inProgress") ids.push(entry.id);
+    }
+  }
+  return ids;
 }
 
 function viewedImagesRows(
@@ -1639,6 +1669,10 @@ export function deriveMessagesTimelineRows(
     expandedRunIds?: ReadonlySet<RunId>;
     expandedAttemptIds?: ReadonlySet<RunAttemptId>;
     expandedWorkGroupIds?: ReadonlySet<string>;
+    /** Groups the reader closed while they were auto-expanded. */
+    collapsedWorkGroupIds?: ReadonlySet<string>;
+    autoExpandCurrentReasoning?: boolean;
+    autoExpandCurrentCommands?: boolean;
     isWorking: boolean;
     /** Native subagent work has no app run; runless entries form the live response. */
     runlessWorkActive?: boolean;
@@ -1810,6 +1844,14 @@ export function deriveMessagesTimelineRows(
     (entry) => entry.entry.itemType === "reasoning" && (entry.entry.detail?.trim() ?? "") !== "",
   );
   const activeWorkPlacementEntryId = latestVisibleToolEntry?.id;
+  const activeGroupEntries = visibleActiveToolEntries.map((entry) => entry.entry);
+  const activeAutoExpandedEntryIds = currentWorkAutoExpandedEntryIds(activeGroupEntries, {
+    reasoning: input.autoExpandCurrentReasoning === true,
+    commands: input.autoExpandCurrentCommands === true,
+  });
+  const activeGroupExpanded = (groupId: string) =>
+    (input.expandedWorkGroupIds?.has(groupId) ?? false) ||
+    (activeAutoExpandedEntryIds.length > 0 && input.collapsedWorkGroupIds?.has(groupId) !== true);
   const activeWorkRow =
     activeWorkAnchor && latestVisibleToolEntry && !latestToolFailed
       ? (() => {
@@ -1821,9 +1863,9 @@ export function deriveMessagesTimelineRows(
               : `work-live:${activeWorkAnchor.id}`,
             createdAt: activeWorkAnchor.createdAt,
             entry: (latestRunningToolEntry ?? latestVisibleToolEntry).entry,
-            groupedEntries: visibleActiveToolEntries.map((entry) => entry.entry),
+            groupedEntries: activeGroupEntries,
             groupId,
-            expanded: input.expandedWorkGroupIds?.has(groupId) ?? false,
+            expanded: activeGroupExpanded(groupId),
             active: latestToolKeepsActivityLive,
             ...(latestThoughtEntry ? { thought: latestThoughtEntry.entry } : {}),
           };
@@ -1936,6 +1978,7 @@ export function deriveMessagesTimelineRows(
           activeWorkRow.groupId,
           activeWorkRow.createdAt,
           activeWorkRow.groupedEntries,
+          activeAutoExpandedEntryIds,
         ),
       );
     }
@@ -2414,8 +2457,8 @@ export function deriveMessagesTimelineRows(
     const failedGroupAnchor = latestToolFailed ? activeWorkAnchor : undefined;
     if (failedGroupAnchor) {
       const groupId = workGroupId(failedGroupAnchor.id);
-      const expanded = input.expandedWorkGroupIds?.has(groupId) ?? false;
-      const groupedEntries = visibleActiveToolEntries.map((entry) => entry.entry);
+      const expanded = activeGroupExpanded(groupId);
+      const groupedEntries = activeGroupEntries;
       nextRows.push({
         kind: "thinking",
         id: LIVE_ACTIVITY_ROW_ID,
@@ -2424,7 +2467,14 @@ export function deriveMessagesTimelineRows(
         expanded,
       });
       if (expanded) {
-        nextRows.push(expandedWorkGroupRow(groupId, failedGroupAnchor.createdAt, groupedEntries));
+        nextRows.push(
+          expandedWorkGroupRow(
+            groupId,
+            failedGroupAnchor.createdAt,
+            groupedEntries,
+            activeAutoExpandedEntryIds,
+          ),
+        );
       }
       nextRows.push(...viewedImagesRows(groupId, failedGroupAnchor.createdAt, groupedEntries));
     } else {
@@ -2588,6 +2638,7 @@ function replaceStreamingMessageRows(
     expandedRunIds: previousExpandedRuns,
     expandedAttemptIds: previousExpandedAttempts,
     expandedWorkGroupIds: previousExpandedGroups,
+    collapsedWorkGroupIds: previousCollapsedGroups,
     pendingApprovalRequestIds: previousPendingApprovalRequestIds,
     availableRevertTurnCounts: previousAvailableRevertTurnCounts,
     ...previousContext
@@ -2599,6 +2650,7 @@ function replaceStreamingMessageRows(
     expandedRunIds,
     expandedAttemptIds,
     expandedWorkGroupIds,
+    collapsedWorkGroupIds,
     pendingApprovalRequestIds,
     availableRevertTurnCounts,
     ...context
@@ -2611,6 +2663,7 @@ function replaceStreamingMessageRows(
     !shallow(previousExpandedRuns, expandedRunIds) ||
     !shallow(previousExpandedAttempts, expandedAttemptIds) ||
     !shallow(previousExpandedGroups, expandedWorkGroupIds) ||
+    !shallow(previousCollapsedGroups, collapsedWorkGroupIds) ||
     !shallow(previousPendingApprovalRequestIds, pendingApprovalRequestIds) ||
     !shallow(previousAvailableRevertTurnCounts, availableRevertTurnCounts) ||
     !sameCheckpointSummaries(previousCheckpoints, turnDiffSummaries)
