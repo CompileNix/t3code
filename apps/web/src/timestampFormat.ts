@@ -115,6 +115,57 @@ export function resolveHour12(timestampFormat: TimestampFormat): boolean {
   return getTimestampFormatter(timestampFormat, false).resolvedOptions().hour12 ?? false;
 }
 
+const normalizeDayPeriod = (text: string) => text.toLocaleLowerCase().replace(/[\s.]/g, "");
+
+/** The host locale's AM and PM labels, as a 12-hour clock prints them. */
+export function dayPeriodLabels(): { am: string; pm: string } {
+  const formatter = getTimestampFormatter("12-hour", false);
+  const period = (hour: number) =>
+    formatter.formatToParts(Date.UTC(1970, 0, 1, hour)).find((part) => part.type === "dayPeriod")
+      ?.value ?? (hour < 12 ? "AM" : "PM");
+  return { am: period(1), pm: period(13) };
+}
+
+function localDayPeriods(): { am: string; pm: string } {
+  const labels = dayPeriodLabels();
+  return { am: normalizeDayPeriod(labels.am), pm: normalizeDayPeriod(labels.pm) };
+}
+
+/**
+ * Reads a typed time of day ("9:30 pm", "21:30", "930", "9p") as `HH:mm`, or `null` when it
+ * is not one. Accepts English and the host locale's day periods, before or after the digits.
+ */
+export function parseTimeOfDay(text: string): string | null {
+  const numbers = text.match(/\d+/g);
+  if (!numbers || numbers.length > 2) return null;
+  let hourText: string;
+  let minuteText: string;
+  if (numbers.length === 2) {
+    [hourText, minuteText] = numbers as [string, string];
+    if (hourText.length > 2 || minuteText.length > 2) return null;
+  } else {
+    const digits = numbers[0]!;
+    if (digits.length > 4) return null;
+    hourText = digits.length <= 2 ? digits : digits.slice(0, -2);
+    minuteText = digits.length <= 2 ? "0" : digits.slice(-2);
+  }
+  const rest = normalizeDayPeriod(text.replace(/\d+|:/g, ""));
+  const local = localDayPeriods();
+  const pm = rest === "p" || rest === "pm" || (local.pm !== "" && rest === local.pm);
+  const am = rest === "a" || rest === "am" || (local.am !== "" && rest === local.am);
+  if (rest !== "" && rest !== "h" && !am && !pm) return null;
+  let hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (minute > 59) return null;
+  if (am || pm) {
+    if (hour < 1 || hour > 12) return null;
+    hour = (hour % 12) + (pm ? 12 : 0);
+  } else if (hour > 23) {
+    return null;
+  }
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
 export function parseTimestampDate(isoDate: string): Date | null {
   const date = new Date(isoDate);
   return Number.isNaN(date.getTime()) ? null : date;

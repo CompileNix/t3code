@@ -4,7 +4,9 @@ import {
   formatChatTimestampTooltip,
   formatDateTimeTimestamp,
   formatDayAwareTimestamp,
+  formatTimeOfDay,
   formatUpcomingTimestamp,
+  parseTimeOfDay,
 } from "./timestampFormat";
 
 // Node re-resolves the default zone when TZ is assigned, like a renderer after the OS zone changes.
@@ -127,5 +129,38 @@ describe("timestamps after the system time zone changes", () => {
     expect(formatChatTimestampTooltip(monthEnd, "12-hour")).toBe(
       `${timeIn(monthEnd, "Asia/Bangkok")}, 1st November 2026`,
     );
+  });
+});
+
+describe("time of day input", () => {
+  it.each([
+    ["21:30", "21:30"],
+    ["9:30 pm", "21:30"],
+    ["9:30 P.M.", "21:30"],
+    ["9p", "21:00"],
+    ["12 am", "00:00"],
+    ["12:15 PM", "12:15"],
+    ["930", "09:30"],
+    ["0", "00:00"],
+    ["7.05", "07:05"],
+    ["21 h 30", "21:30"],
+    ["24:00", null],
+    ["13 pm", null],
+    ["9:60", null],
+    ["12345", null],
+    ["noon", null],
+    ["", null],
+  ])("reads %j as %j", (text, expected) => {
+    expect(parseTimeOfDay(text)).toBe(expected);
+  });
+
+  it("formats in the chosen clock and reads its own output back", () => {
+    expect(formatTimeOfDay("21:05", "24-hour")).toMatch(/^21.05$/);
+    expect(formatTimeOfDay("21:05", "12-hour")).toMatch(/9.05/);
+    for (const format of ["12-hour", "24-hour", "locale"] as const) {
+      for (const value of ["00:00", "09:30", "12:00", "21:05"]) {
+        expect(parseTimeOfDay(formatTimeOfDay(value, format))).toBe(value);
+      }
+    }
   });
 });

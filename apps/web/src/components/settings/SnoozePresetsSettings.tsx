@@ -5,6 +5,7 @@ import {
   MAX_SNOOZE_PRESETS,
   SnoozePresetDay,
   type SnoozePresetSetting,
+  type TimestampFormat,
 } from "@t3tools/contracts/settings";
 import {
   resolveSnoozePreset,
@@ -21,7 +22,7 @@ import { useFormattingLocale } from "../../i18n/I18nProvider";
 import { reconcileSnoozeDraft, sortSnoozeRows } from "./SnoozePresetsSettings.logic";
 import { formatShortTimestamp } from "../../timestampFormat";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { TimeInput } from "../ui/time-input";
 import {
   NumberField,
   NumberFieldDecrement,
@@ -242,7 +243,7 @@ export function SnoozePresetsRow() {
 function SnoozePresetList(props: {
   presets: ReadonlyArray<SnoozePresetSetting>;
   keys: ReadonlyArray<number>;
-  timestampFormat: Parameters<typeof formatShortTimestamp>[1];
+  timestampFormat: TimestampFormat;
   onChange: (index: number, preset: SnoozePresetSetting) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
@@ -305,7 +306,11 @@ function SnoozePresetList(props: {
             aria-label={gt("Snooze option {number}", { number: index + 1 })}
             className="flex flex-wrap items-center gap-2"
           >
-            <SnoozePresetFields preset={preset} onChange={(next) => props.onChange(index, next)} />
+            <SnoozePresetFields
+              preset={preset}
+              timestampFormat={props.timestampFormat}
+              onChange={(next) => props.onChange(index, next)}
+            />
             <div className="ml-auto flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
               {preview.tone === "menu" ? (
                 <span className="truncate">
@@ -358,11 +363,12 @@ function SnoozePresetList(props: {
 function SnoozePresetFields(props: {
   preset: SnoozePresetSetting;
   onChange: (preset: SnoozePresetSetting) => void;
+  timestampFormat: TimestampFormat;
 }) {
   const gt = useGT();
   const m = useMessages();
   const locale = useLocale();
-  const { preset, onChange } = props;
+  const { preset, onChange, timestampFormat } = props;
   const when = preset.kind === "after" ? "after" : preset.day;
   // Switching between a duration and a set time keeps the other kind's last value, so a
   // misclick on "When" can be undone without retyping it.
@@ -406,18 +412,13 @@ function SnoozePresetFields(props: {
           <span className="text-xs text-muted-foreground">
             {gt("at", { $context: "before a time of day, as in: Monday at 09:00" })}
           </span>
-          <Input
-            nativeInput
+          <TimeInput
             size="sm"
-            type="time"
             className="w-32"
             aria-label={gt("Time", { $context: "time of day" })}
+            timestampFormat={timestampFormat}
             value={preset.time}
-            onChange={(event) => {
-              if (/^\d{2}:\d{2}$/.test(event.target.value)) {
-                onChange({ ...preset, time: event.target.value });
-              }
-            }}
+            onValueChange={(time) => onChange({ ...preset, time })}
           />
         </div>
       )}

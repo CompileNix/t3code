@@ -101,6 +101,8 @@ import {
   scheduleDraftErrors,
   scheduledTaskDestinationThreads,
   toDateTimeLocalValue,
+  joinRunAt,
+  splitRunAt,
   webhookDeliveryLabel,
   defaultScheduledTaskProjectId,
   matchesScheduledTaskScope,
@@ -144,6 +146,8 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Input } from "../ui/input";
+import { DateInput } from "../ui/date-input";
+import { TimeInput } from "../ui/time-input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
@@ -1550,6 +1554,7 @@ function ScheduledTaskEditorForm({
           projectId: defaultScheduledTaskProjectId(scopedProjects, scope),
         },
   );
+  const { date: runAtDate, time: runAtTime } = splitRunAt(draft.runAt);
   // Pinned first. The chosen project stays listed after it is archived.
   const projects = scopedProjects
     .filter(
@@ -2285,14 +2290,27 @@ function ScheduledTaskEditorForm({
                 <Label htmlFor="scheduled-task-run-at">
                   <T>Run on</T>
                 </Label>
-                <Input
-                  type="datetime-local"
+                <DateInput
                   id="scheduled-task-run-at"
-                  nativeInput
-                  className="w-56"
-                  value={draft.runAt}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, runAt: event.target.value }))
+                  className="w-48"
+                  value={runAtDate}
+                  onValueChange={(date) =>
+                    setDraft((current) => ({
+                      ...current,
+                      runAt: joinRunAt(date, splitRunAt(current.runAt).time),
+                    }))
+                  }
+                />
+                <TimeInput
+                  className="w-32"
+                  aria-label={gt("Time", { $context: "time of day" })}
+                  timestampFormat={settings.timestampFormat}
+                  value={runAtTime}
+                  onValueChange={(time) =>
+                    setDraft((current) => ({
+                      ...current,
+                      runAt: joinRunAt(splitRunAt(current.runAt).date, time),
+                    }))
                   }
                 />
               </div>
@@ -2302,17 +2320,16 @@ function ScheduledTaskEditorForm({
                   <Label htmlFor="scheduled-task-time">
                     <T>Run at</T>
                   </Label>
-                  <Input
-                    type="time"
+                  <TimeInput
                     id="scheduled-task-time"
                     aria-describedby={
                       runAtZone === undefined ? undefined : "scheduled-task-time-zone"
                     }
-                    nativeInput
                     className="w-32"
+                    timestampFormat={settings.timestampFormat}
                     value={draft.timeOfDay}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, timeOfDay: event.target.value }))
+                    onValueChange={(timeOfDay) =>
+                      setDraft((current) => ({ ...current, timeOfDay }))
                     }
                   />
                   {runAtZone === undefined ? null : (

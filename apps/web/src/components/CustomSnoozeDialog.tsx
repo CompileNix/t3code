@@ -9,13 +9,12 @@ import {
   type CustomSnoozeInput,
 } from "@t3tools/client-runtime/state/thread-settled";
 import { Button } from "./ui/button";
-import { CalendarIcon, Settings2Icon } from "lucide-react";
-import { Calendar } from "./ui/calendar";
-import { weekStartsOn } from "../timestampFormat";
+import { Settings2Icon } from "lucide-react";
+import { DateInput } from "./ui/date-input";
+import { parseDateValue } from "./ui/date-input.logic";
 import { useNowMinute } from "../hooks/useNowMinute";
-import { useFormattingLocale } from "../i18n/I18nProvider";
-import { Popover, PopoverTrigger, PopoverPopup } from "./ui/popover";
-import { Input } from "./ui/input";
+import { TimeInput } from "./ui/time-input";
+import { usePrimarySettings } from "../hooks/useSettings";
 import { Label } from "./ui/label";
 import { Toggle, ToggleGroup } from "./ui/toggle-group";
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from "./ui/select";
@@ -66,7 +65,6 @@ export function CustomSnoozeDialogHost() {
 
 function CustomSnoozeDialog() {
   const gt = useGT();
-  const locale = useFormattingLocale();
   const id = useId();
   const navigate = useNavigate();
   const [initial] = useState(() => new Date(Date.now() + 3_600_000));
@@ -75,11 +73,11 @@ function CustomSnoozeDialog() {
   const today = startOfLocalDay(Date.parse(`${nowMinute}Z`));
   const [mode, setMode] = useState<CustomSnoozeInput["mode"]>("date");
   const [date, setDate] = useState(initial);
-  const [calendarOpen, setCalendarOpen] = useState(false);
   const [time, setTime] = useState(localSnoozeTime(initial));
   const [amount, setAmount] = useState("2");
   const [unit, setUnit] = useState<"minutes" | "hours" | "days">("hours");
   const [error, setError] = useState<string | null>(null);
+  const timestampFormat = usePrimarySettings((settings) => settings.timestampFormat);
   const input: CustomSnoozeInput =
     mode === "date" ? { mode, date: localSnoozeDate(date), time } : { mode, amount, unit };
   return (
@@ -140,51 +138,29 @@ function CustomSnoozeDialog() {
                       <Label htmlFor={`${id}-date`}>
                         <T context="calendar date">Date</T>
                       </Label>
-                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                        <PopoverTrigger
-                          render={
-                            <Button
-                              id={`${id}-date`}
-                              variant="outline"
-                              className="w-full justify-between"
-                            />
-                          }
-                        >
-                          {date.toLocaleDateString(locale, {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                          <CalendarIcon className="size-4 text-muted-foreground" />
-                        </PopoverTrigger>
-                        <PopoverPopup align="start" aria-label={gt("Choose snooze date")}>
-                          <Calendar
-                            mode="single"
-                            required
-                            selected={date}
-                            defaultMonth={date}
-                            {...(weekStartsOn === undefined ? {} : { weekStartsOn })}
-                            disabled={{ before: today }}
-                            onSelect={(selected) => {
-                              setDate(selected);
-                              setCalendarOpen(false);
-                              setError(null);
-                            }}
-                          />
-                        </PopoverPopup>
-                      </Popover>
+                      <DateInput
+                        id={`${id}-date`}
+                        className="w-full"
+                        value={localSnoozeDate(date)}
+                        min={today}
+                        popupLabel={gt("Choose snooze date")}
+                        onValueChange={(value) => {
+                          const next = parseDateValue(value);
+                          if (next) setDate(next);
+                          setError(null);
+                        }}
+                      />
                     </div>
                     <Label className="flex min-w-0 flex-col items-stretch" htmlFor={`${id}-time`}>
                       <T context="time of day">Time</T>
-                      <Input
-                        nativeInput
+                      <TimeInput
                         id={`${id}-time`}
                         className="h-9 sm:h-8"
-                        type="time"
                         required
+                        timestampFormat={timestampFormat}
                         value={time}
-                        onChange={(event) => {
-                          setTime(event.target.value);
+                        onValueChange={(value) => {
+                          setTime(value);
                           setError(null);
                         }}
                       />

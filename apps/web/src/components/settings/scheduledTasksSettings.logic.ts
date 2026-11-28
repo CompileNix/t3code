@@ -166,6 +166,16 @@ export function toDateTimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** Splits a `datetime-local` value so the date and the time can be edited separately. */
+export function splitRunAt(runAt: string): { date: string; time: string } {
+  const [date = "", time = ""] = runAt.split("T");
+  return { date, time };
+}
+
+export function joinRunAt(date: string, time: string): string {
+  return date === "" && time === "" ? "" : `${date}T${time}`;
+}
+
 export function scheduleDraftErrors(draft: DraftState, resolve: MessageResolver = m) {
   const invalidRunTime = (description: string) => [
     { title: resolve(msg("Invalid run time")), description },
