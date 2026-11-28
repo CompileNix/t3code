@@ -191,6 +191,22 @@
   "8c2d901183b4e219": "Cole o segredo",
   "610aea624f895a78": "Salvo com segurança e mantido privado",
   "329b7854b7e0546e": "Use uma referência do 1Password como {example}.",
+  "fad8a99a4b144aab": "Raciocínio",
+  "63843e59a7503830": "Saída",
+  "ec94a82a1d6d0359": "Chamadas de ferramentas",
+  "24d7f1b999baf91c": "Modelo/outros",
+  "716adc3acb5aba1d": "Comando",
+  "acab42b7e6c6d85b": "Alteração de arquivo",
+  "dbc09a469f8fd924": "Pesquisa",
+  "185ffbdd79cc9a3e": "Web",
+  "39d408d6f2bbfe25": "MCP/outros",
+  "989611eaac01d441": "Subagente",
+  "eb744b807d0dc2cb": "Não inclui o tempo aguardando você.",
+  "43868425247be54c": "Não inclui o tempo aguardando você. O tempo de agente soma todos os agentes, então pode passar do tempo real.",
+  "638c65b8385c95eb": "Parcial: {reported} de {total} turnos informaram tokens.",
+  "99c7060762b8c64d": "{providers} não informa os tokens.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {1 tarefa delegada em outro ambiente não está incluída.} other {{count} tarefas delegadas em outros ambientes não estão incluídas.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {1 ambiente não está incluído: está offline ou o servidor é anterior às estatísticas de sessão.} other {{count} ambientes não estão incluídos: estão offline ou os servidores são anteriores às estatísticas de sessão.}}",
   "d68b539295c009d3": "{count, plural, one {Delegou {count} tarefa} other {Delegou {count} tarefas}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Tentou delegar {count} tarefa} other {Tentou delegar {count} tarefas}}",
   "73208f89396763ce": "{count, plural, one {Pediu a interrupção de {count} thread} other {Pediu a interrupção de {count} threads}}",
@@ -4462,6 +4478,14 @@
   ],
   "92347683e33e9f02": "Encaminhar para esta máquina, para qualquer app aqui",
   "3c7763243445b28d": "Parar servidor",
+  "4d0f85ff1c2192f0": "Estatísticas da sessão",
+  "8bc099917b51f15f": "{count, plural, one {Inclui {count} thread de subagente.} other {Inclui {count} threads de subagentes.}}",
+  "da143293b2d69fad": "Tempo de agente",
+  "30381966430dcfa2": "Tokens por tipo",
+  "9ceea2db4ecf5ad4": "+ {elapsed} em execução",
+  "546cfd8ff432c2f3": "Tempo real",
+  "67113efdfd8d989f": "Ainda não há contagens de tokens.",
+  "5a35794ecaa8c27c": "Chamadas de ferramentas",
   "991cc9fb37606c91": "(resposta vazia)",
   "36e4b8d2db087296": "Criar fork a partir desta resposta",
   "c92a0bab54261695": "Responder a esta resposta",
@@ -12374,7 +12398,6 @@
   "c9903664b61c8e25": "Acerto de cache",
   "04f304a6af503ea2": "{share} do custo",
   "273c1532c1786aa0": "Custo por tipo",
-  "30381966430dcfa2": "Tokens por tipo",
   "0391cf3cac1a9fdb": "Custo por velocidade",
   "5ab44a24beb33aa7": "{tokens} tokens não têm preço conhecido",
   "bdd13272e8285146": "Definir preço",
@@ -12504,6 +12527,93 @@
   "37069a5ef57ee9fa": "Custo por hora, por provedor",
   "aa73a1b4208bc912": "Tokens processados por dia, por provedor",
   "5c3c0e3a9f3e4717": "Custo por dia, por provedor",
+  "a34e24e9317c18c5": "Estatísticas da sessão por projeto",
+  "6d64f8d0066f0310": "Não há estatísticas da sessão para este período.",
+  "a263f5d04781ccfd": [
+    "A saída inclui ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " de raciocínio."
+  ],
+  "bf74a3119a86dac3": [
+    "Subagentes e compactação (somente entrada/saída):",
+    " ",
+    {
+      "t": "span",
+      "i": 1,
+      "c": [
+        {
+          "i": 2,
+          "k": "_gt_value_2",
+          "v": "v"
+        },
+        " entrada ·",
+        " ",
+        {
+          "i": 3,
+          "k": "_gt_value_3",
+          "v": "v"
+        },
+        " saída"
+      ]
+    }
+  ],
+  "c35cf54e8d33faeb": [
+    {
+      "t": "span",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "tokens ·",
+    " ",
+    {
+      "t": "span",
+      "i": 3,
+      "c": {
+        "i": 4,
+        "k": "_gt_value_4",
+        "v": "v"
+      }
+    },
+    " ",
+    "real ·",
+    " ",
+    {
+      "t": "span",
+      "i": 5,
+      "c": {
+        "i": 6,
+        "k": "_gt_value_6",
+        "v": "v"
+      }
+    },
+    " ",
+    "tempo de agente ·",
+    " ",
+    {
+      "t": "span",
+      "i": 7,
+      "c": {
+        "i": 8,
+        "k": "_gt_value_8",
+        "v": "v"
+      }
+    },
+    " ",
+    "chamadas de ferramentas"
+  ],
+  "7432c240aa714c0a": "Nenhum turno concluído neste período.",
+  "7de6cc7b1fe0d9e6": "Threads",
+  "b30a1c3846fefd72": "Real",
+  "090c73e82eef71fa": "Tempo de agente",
   "0bd41ff995d36a66": "Leitura de cache",
   "3f0dfe0cb15a3272": "Gravação de cache",
   "1c9d860be42b1c02": "Saída",

@@ -83,6 +83,9 @@ import { UsageLimitsSection } from "./UsageLimits";
 import { UsagePriceOverrides } from "./UsagePriceOverrides";
 import { UsageProviderChart } from "./UsageProviderChart";
 import { SpeedPremium, UsageModelDialog } from "./UsageModelDialog";
+import { UsageSessionStats } from "./UsageSessionStats";
+import { refreshSessionStats } from "../../state/sessionStats";
+import { sessionStatsRange } from "@t3tools/client-runtime/session-stats";
 import { UsageShareBar } from "./UsageShareBar";
 import {
   costTypeSegments,
@@ -337,6 +340,10 @@ export function UsagePage() {
     ) {
       setWindowSelection({ days: windowDays, window: nextWindow });
     }
+    refreshSessionStats({
+      ...sessionStatsRange(nextWindow),
+      environmentIds: selectedEnvironments.map((environment) => environment.environmentId),
+    });
     refreshingRef.current = true;
     setIsRefreshing(true);
     void refresh(nextWindow).finally(() => {
@@ -588,6 +595,14 @@ export function UsagePage() {
                 onSelectModel={selectUsageModel}
               />
             )}
+            {!showingLimits && selectedEnvironments.length > 0 ? (
+              <UsageSessionStats
+                window={shownWindow}
+                environmentIds={selectedEnvironments.map(
+                  (environment) => environment.environmentId,
+                )}
+              />
+            ) : null}
           </WorkspacePageContainer>
         </ScrollArea>
       </div>

@@ -26,6 +26,7 @@ import { ThreadAutomationsPanel } from "./ThreadAutomationsPanel";
 import { ThreadRelationshipsPanel } from "./ThreadRelationshipsControl";
 import { ThreadRepositorySections } from "./ThreadRepositorySections";
 import { ThreadServersPanel } from "./ThreadServersPanel";
+import { ThreadSessionStats } from "./ThreadSessionStats";
 import {
   ThreadDetailsContext,
   ThreadDetailsUsage,
@@ -339,6 +340,10 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
 
               {visible.machineLoad ? (
                 <ThreadDetailsMachineLoad environmentId={props.environmentId} />
+              ) : null}
+
+              {!props.draftId && props.isServerThread && visible.sessionStats ? (
+                <ThreadSessionStats environmentId={props.environmentId} threadId={props.threadId} />
               ) : null}
 
               {/* Shown only when no section above has content, so an emptied card can be refilled. */}

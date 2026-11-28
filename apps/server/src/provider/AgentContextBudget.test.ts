@@ -56,6 +56,7 @@ import { DocumentText } from "./DocumentText.ts";
 import { EnvironmentThemeService } from "../environmentTheme.ts";
 import { ProviderRegistry } from "./ProviderRegistry.ts";
 import budget from "./agentContextBudget.json" with { type: "json" };
+import * as SessionStats from "../sessionStats/SessionStatsService.ts";
 
 // Registration only stores tool definitions, so the handlers' services are never called.
 const toolHandlerServices = Layer.mergeAll(
@@ -88,6 +89,7 @@ const toolHandlerServices = Layer.mergeAll(
   Layer.mock(PullRequestService)({}),
   Layer.mock(GitManager)({}),
   Layer.mock(RemoteDelegation)({}),
+  Layer.mock(SessionStats.SessionStatsService)({}),
   Layer.mock(ScheduledTaskService)({}),
   Layer.mock(SecretRequests)({}),
   Layer.mock(FeedbackStore)({}),

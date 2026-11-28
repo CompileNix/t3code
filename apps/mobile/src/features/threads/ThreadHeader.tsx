@@ -1,4 +1,6 @@
 import { useGT, useMessages } from "gt-react-native";
+import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import { useState } from "react";
 
 import { AppBar } from "../../components/ui/AppBar";
 import type { AppBarAction, AppBarMenu } from "../../components/ui/AppBar.types";
@@ -7,6 +9,7 @@ import {
   useWorkspacePaneState,
 } from "../layout/AdaptiveWorkspaceLayout";
 import type { ThreadInspectorMode } from "./thread-inspector-navigation";
+import { ThreadSessionStatsSheet } from "./ThreadSessionStatsSheet";
 import { useWorkspaceBackNavigation } from "../layout/workspace/useAndroidWorkspaceNavigation";
 import {
   threadTerminalMenu,
@@ -23,9 +26,11 @@ export function ThreadHeader(props: {
   readonly hasThreadCwd: boolean;
   readonly inspectorMode: ThreadInspectorMode | null;
   readonly onOpenFilesInspector: () => void;
+  readonly thread?: { readonly environmentId: EnvironmentId; readonly threadId: ThreadId };
 }) {
   const gt = useGT();
   const m = useMessages();
+  const [sessionStatsOpen, setSessionStatsOpen] = useState(false);
   const goBack = useWorkspaceBackNavigation();
   const { toggleAuxiliaryPane, startNewTask } = useAdaptiveWorkspaceLayout();
   const { panes } = useWorkspacePaneState();
@@ -44,26 +49,54 @@ export function ThreadHeader(props: {
         },
       ]
     : [];
-  const menus = [gitMenu, terminalMenu].filter((menu): menu is AppBarMenu => menu !== null);
+  const moreMenu: AppBarMenu | null =
+    props.thread === undefined
+      ? null
+      : {
+          title: gt("More", { $context: "menu of more thread actions" }),
+          icon: "ellipsis.circle",
+          separateBackground: false,
+          items: [
+            {
+              id: "session-stats",
+              title: gt("Session stats"),
+              icon: "chart.bar.xaxis",
+              subtitle: gt("Tokens, time and tool calls"),
+              onPress: () => setSessionStatsOpen(true),
+            },
+          ],
+        };
+  const menus = [gitMenu, terminalMenu, moreMenu].filter(
+    (menu): menu is AppBarMenu => menu !== null,
+  );
 
   return (
-    <AppBar
-      title={props.title}
-      subtitle={props.subtitle}
-      onBackToList={goBack}
-      onCompose={props.draft ? undefined : startNewTask}
-      backInSplitView={
-        props.onReturnToThread
-          ? {
-              accessibilityLabel: gt("Return to chat"),
-              icon: "chevron.left",
-              onPress: props.onReturnToThread,
-            }
-          : undefined
-      }
-      actions={actions}
-      menus={menus}
-      hideBottomBorder
-    />
+    <>
+      <AppBar
+        title={props.title}
+        subtitle={props.subtitle}
+        onBackToList={goBack}
+        onCompose={props.draft ? undefined : startNewTask}
+        backInSplitView={
+          props.onReturnToThread
+            ? {
+                accessibilityLabel: gt("Return to chat"),
+                icon: "chevron.left",
+                onPress: props.onReturnToThread,
+              }
+            : undefined
+        }
+        actions={actions}
+        menus={menus}
+        hideBottomBorder
+      />
+      {sessionStatsOpen && props.thread !== undefined ? (
+        <ThreadSessionStatsSheet
+          environmentId={props.thread.environmentId}
+          threadId={props.thread.threadId}
+          onClose={() => setSessionStatsOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }

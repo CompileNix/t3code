@@ -191,6 +191,22 @@
   "8c2d901183b4e219": "Geheimnis einfügen",
   "610aea624f895a78": "Sicher gespeichert und privat gehalten",
   "329b7854b7e0546e": "Verwende eine 1Password-Referenz wie {example}.",
+  "fad8a99a4b144aab": "Schlussfolgern",
+  "63843e59a7503830": "Ausgabe",
+  "ec94a82a1d6d0359": "Tool-Aufrufe",
+  "24d7f1b999baf91c": "Modell/Sonstiges",
+  "716adc3acb5aba1d": "Befehl",
+  "acab42b7e6c6d85b": "Dateiänderung",
+  "dbc09a469f8fd924": "Suche",
+  "185ffbdd79cc9a3e": "Web",
+  "39d408d6f2bbfe25": "MCP/Sonstiges",
+  "989611eaac01d441": "Subagent",
+  "eb744b807d0dc2cb": "Ohne die Zeit, in der auf dich gewartet wurde.",
+  "43868425247be54c": "Ohne die Zeit, in der auf dich gewartet wurde. Die Agentenzeit addiert alle Agenten und kann daher die Gesamtdauer übersteigen.",
+  "638c65b8385c95eb": "Unvollständig: {reported} von {total} Turns haben Tokens gemeldet.",
+  "99c7060762b8c64d": "Tokens werden von {providers} nicht gemeldet.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {1 delegierte Aufgabe in einer anderen Umgebung ist nicht enthalten.} other {{count} delegierte Aufgaben in anderen Umgebungen sind nicht enthalten.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {1 Umgebung ist nicht enthalten: Sie ist offline oder ihr Server ist älter als die Sitzungsstatistik.} other {{count} Umgebungen sind nicht enthalten: Sie sind offline oder ihre Server sind älter als die Sitzungsstatistik.}}",
   "d68b539295c009d3": "{count, plural, one {{count} Aufgabe delegiert} other {{count} Aufgaben delegiert}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Versucht, {count} Aufgabe zu delegieren} other {Versucht, {count} Aufgaben zu delegieren}}",
   "73208f89396763ce": "{count, plural, one {Unterbrechung für {count} Thread angefordert} other {Unterbrechung für {count} Threads angefordert}}",
@@ -4465,6 +4481,14 @@
   ],
   "92347683e33e9f02": "An diesen Rechner weiterleiten, für jede App hier",
   "3c7763243445b28d": "Server stoppen",
+  "4d0f85ff1c2192f0": "Sitzungsstatistik",
+  "8bc099917b51f15f": "{count, plural, one {Enthält {count} Subagent-Thread.} other {Enthält {count} Subagent-Threads.}}",
+  "da143293b2d69fad": "Agentenzeit",
+  "30381966430dcfa2": "Tokens nach Typ",
+  "9ceea2db4ecf5ad4": "+ {elapsed} laufend",
+  "546cfd8ff432c2f3": "Gesamtdauer",
+  "67113efdfd8d989f": "Noch keine Token-Zahlen.",
+  "5a35794ecaa8c27c": "Tool-Aufrufe",
   "991cc9fb37606c91": "(leere Antwort)",
   "36e4b8d2db087296": "Ab dieser Antwort forken",
   "c92a0bab54261695": "Auf diese Antwort antworten",
@@ -12376,7 +12400,6 @@
   "c9903664b61c8e25": "Cache-Treffer",
   "04f304a6af503ea2": "{share} der Kosten",
   "273c1532c1786aa0": "Kosten nach Typ",
-  "30381966430dcfa2": "Tokens nach Typ",
   "0391cf3cac1a9fdb": "Kosten nach Geschwindigkeit",
   "5ab44a24beb33aa7": "{tokens} Tokens haben keinen bekannten Preis",
   "bdd13272e8285146": "Preis festlegen",
@@ -12506,6 +12529,93 @@
   "37069a5ef57ee9fa": "Kosten pro Stunde nach Anbieter",
   "aa73a1b4208bc912": "Verarbeitete Tokens pro Tag nach Anbieter",
   "5c3c0e3a9f3e4717": "Kosten pro Tag nach Anbieter",
+  "a34e24e9317c18c5": "Sitzungsstatistik nach Projekt",
+  "6d64f8d0066f0310": "Keine Sitzungsstatistik für diesen Zeitraum.",
+  "a263f5d04781ccfd": [
+    "Ausgabe enthält ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " Schlussfolgern."
+  ],
+  "bf74a3119a86dac3": [
+    "Subagenten & Komprimierung (nur Ein-/Ausgabe):",
+    " ",
+    {
+      "t": "span",
+      "i": 1,
+      "c": [
+        {
+          "i": 2,
+          "k": "_gt_value_2",
+          "v": "v"
+        },
+        " ein ·",
+        " ",
+        {
+          "i": 3,
+          "k": "_gt_value_3",
+          "v": "v"
+        },
+        " aus"
+      ]
+    }
+  ],
+  "c35cf54e8d33faeb": [
+    {
+      "t": "span",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "Tokens ·",
+    " ",
+    {
+      "t": "span",
+      "i": 3,
+      "c": {
+        "i": 4,
+        "k": "_gt_value_4",
+        "v": "v"
+      }
+    },
+    " ",
+    "Dauer ·",
+    " ",
+    {
+      "t": "span",
+      "i": 5,
+      "c": {
+        "i": 6,
+        "k": "_gt_value_6",
+        "v": "v"
+      }
+    },
+    " ",
+    "Agentenzeit ·",
+    " ",
+    {
+      "t": "span",
+      "i": 7,
+      "c": {
+        "i": 8,
+        "k": "_gt_value_8",
+        "v": "v"
+      }
+    },
+    " ",
+    "Tool-Aufrufe"
+  ],
+  "7432c240aa714c0a": "Keine abgeschlossenen Turns in diesem Zeitraum.",
+  "7de6cc7b1fe0d9e6": "Threads",
+  "b30a1c3846fefd72": "Dauer",
+  "090c73e82eef71fa": "Agentenzeit",
   "0bd41ff995d36a66": "Cache-Lesen",
   "3f0dfe0cb15a3272": "Cache-Schreiben",
   "1c9d860be42b1c02": "Ausgabe",

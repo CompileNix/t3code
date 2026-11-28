@@ -1,4 +1,5 @@
-import type { UsageTokenTotals } from "@t3tools/contracts";
+import type { SessionStatsTokens, SessionStatsTotals, UsageTokenTotals } from "@t3tools/contracts";
+import { sessionStatsTimeRows } from "@t3tools/client-runtime/session-stats";
 import {
   isModelCostUnknown,
   type CategoryCost,
@@ -70,6 +71,24 @@ export function tokenTypeSegments(
     { label: msg("Cache write"), value: tokens.cacheCreationTokens, color: TYPE_COLORS.cacheWrite },
     { label: msg("Output"), value: tokens.outputTokens, color: TYPE_COLORS.output },
   ];
+}
+
+export function sessionStatsTokenSegments(tokens: SessionStatsTokens): readonly ShareSegment[] {
+  return tokenTypeSegments({
+    uncachedInputTokens: tokens.uncachedInputTokens,
+    cachedInputTokens: tokens.cacheReadTokens,
+    cacheCreationTokens: tokens.cacheWriteTokens,
+    outputTokens: tokens.outputTokens,
+  });
+}
+
+const TIME_COLORS = [ink(44), ink(100), ink(72), ink(30)];
+
+export function sessionStatsTimeSegments(totals: SessionStatsTotals): readonly ShareSegment[] {
+  return sessionStatsTimeRows(totals).map((row, index) => ({
+    ...row,
+    color: TIME_COLORS[index] ?? ink(30),
+  }));
 }
 
 export function speedCostSegments(cost: SpeedCost): readonly ShareSegment[] {

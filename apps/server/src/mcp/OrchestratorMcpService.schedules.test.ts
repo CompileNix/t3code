@@ -21,6 +21,7 @@ import * as ServerSettings from "../serverSettings.ts";
 import * as Git from "../vcs/GitVcsDriver.ts";
 import type { McpInvocationScope } from "./McpInvocationContext.ts";
 import * as Mcp from "./OrchestratorMcpService.ts";
+import * as SessionStats from "../sessionStats/SessionStatsService.ts";
 
 const dependencies = Layer.mergeAll(
   NodeCrypto.layer,
@@ -41,6 +42,7 @@ const dependencies = Layer.mergeAll(
   Layer.mock(Secrets.SecretRequests)({}),
   Layer.mock(RemoteDelegation.RemoteDelegation)({}),
   Layer.mock(Scheduler.Scheduler)({ register: () => Effect.void }),
+  Layer.mock(SessionStats.SessionStatsService)({}),
 );
 
 const client: McpInvocationScope = {

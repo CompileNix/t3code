@@ -9,13 +9,38 @@ export interface ShareSegment {
   readonly color: string;
 }
 
+/** Text that explains itself on hover or keyboard focus. */
+export function HintLabel({
+  hint,
+  children,
+}: {
+  readonly hint: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <SharedTooltipTrigger
+      render={
+        <span
+          tabIndex={0}
+          className="cursor-help underline decoration-muted-foreground/50 decoration-dotted underline-offset-2"
+        />
+      }
+      label={hint}
+    >
+      {children}
+    </SharedTooltipTrigger>
+  );
+}
+
 export function UsageShareBar({
   label,
+  hint,
   segments,
   format,
   aside,
 }: {
   readonly label: string;
+  readonly hint?: string;
   readonly segments: readonly ShareSegment[];
   readonly format: (value: number) => string;
   readonly aside?: ReactNode;
@@ -28,7 +53,9 @@ export function UsageShareBar({
   return (
     <div className="flex min-w-0 flex-col gap-2.5">
       <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-medium text-foreground">{label}</h3>
+        <h3 className="text-sm font-medium text-foreground">
+          {hint === undefined ? label : <HintLabel hint={hint}>{label}</HintLabel>}
+        </h3>
         {aside}
       </div>
       {/* The legend below carries every figure; the bar's tooltips are pointer-only. */}

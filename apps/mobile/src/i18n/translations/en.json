@@ -189,6 +189,22 @@
   "8c2d901183b4e219": "Paste the secret",
   "610aea624f895a78": "Saved securely and kept private",
   "329b7854b7e0546e": "Use a 1Password reference like {example}.",
+  "fad8a99a4b144aab": "Reasoning",
+  "63843e59a7503830": "Output",
+  "ec94a82a1d6d0359": "Tool calls",
+  "24d7f1b999baf91c": "Model/other",
+  "716adc3acb5aba1d": "Command",
+  "acab42b7e6c6d85b": "File change",
+  "dbc09a469f8fd924": "Search",
+  "185ffbdd79cc9a3e": "Web",
+  "39d408d6f2bbfe25": "MCP/other",
+  "989611eaac01d441": "Subagent",
+  "eb744b807d0dc2cb": "Excludes time spent waiting for you.",
+  "43868425247be54c": "Excludes time spent waiting for you. Agent time adds up every agent, so it can exceed wall time.",
+  "638c65b8385c95eb": "Partial: {reported} of {total} turns reported tokens.",
+  "99c7060762b8c64d": "Tokens not reported by {providers}.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {1 delegated task on another environment is not included.} other {{count} delegated tasks on other environments are not included.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {1 environment is not included: it is offline or its server predates session stats.} other {{count} environments are not included: they are offline or their servers predate session stats.}}",
   "d68b539295c009d3": "{count, plural, one {Delegated {count} task} other {Delegated {count} tasks}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Tried to delegate {count} task} other {Tried to delegate {count} tasks}}",
   "73208f89396763ce": "{count, plural, one {Requested interrupts for {count} thread} other {Requested interrupts for {count} threads}}",
@@ -4767,6 +4783,9 @@
   "11bb30071c8d00e4": "The link works once and expires in 24 hours.",
   "05ba3b5f06a7acfe": "Close files",
   "c7e4f052c3d6c066": "Open files",
+  "6ad625bc72d051e8": "More",
+  "4d0f85ff1c2192f0": "Session stats",
+  "095e3a5a9ed48a9a": "Tokens, time and tool calls",
   "740ee1b96278f02f": "Audio · {size}",
   "93ade1a4fd485bc3": "Audio",
   "e8043d133bb85048": "Pause audio",
@@ -5109,6 +5128,43 @@
     },
     ". Open ChatGPT with the account you connected."
   ],
+  "8bc099917b51f15f": "{count, plural, one {Includes {count} subagent thread.} other {Includes {count} subagent threads.}}",
+  "da143293b2d69fad": "Agent time",
+  "30381966430dcfa2": "Tokens by type",
+  "5142b3a21348886f": "Input",
+  "0bd41ff995d36a66": "Cache read",
+  "3f0dfe0cb15a3272": "Cache write",
+  "a35786495a908d4a": "Output",
+  "9ceea2db4ecf5ad4": "+ {elapsed} running",
+  "546cfd8ff432c2f3": "Wall time",
+  "67113efdfd8d989f": "No token counts yet.",
+  "a263f5d04781ccfd": [
+    "Output includes ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " reasoning."
+  ],
+  "8587ccaf0d7d872b": [
+    "Subagents & compaction (input/output only):",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " in ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " out"
+  ],
+  "5a35794ecaa8c27c": "Tool calls",
   "a3d040c4ef4fc6e9": "Ahead of pace",
   "b16fdf56b16d99c9": "On pace",
   "90f977e97ae8b6c6": "Under pace",
@@ -5246,13 +5302,9 @@
   "5d177ec0d4e89cde": "{share} of observed input",
   "1c69c1b0ae721e62": "Uncached input",
   "032c2af56f844329": "{tokens} cache writes",
-  "a35786495a908d4a": "Output",
   "9d2acf4bdab6d880": "incl. {tokens} reasoning",
   "4a71eca9a6fe0137": "Unpriced",
   "6781ea37879e25c1": "of records, excluded from cost",
-  "5142b3a21348886f": "Input",
-  "0bd41ff995d36a66": "Cache read",
-  "3f0dfe0cb15a3272": "Cache write",
   "e29e3784b8c984fd": "Other",
   "e5591a3cf178de72": "Standard",
   "572171fafbc3eb3a": "Fast",
@@ -5276,6 +5328,38 @@
   ],
   "d1c32e217a2344a5": "Scanning provider transcripts…",
   "49c4cd88ca4d260a": "No activity in this window.",
+  "27b68a3aab26703b": "Session stats · all environments",
+  "43647329eafe6fd2": "{count, plural, one {{count} thread} other {{count} threads}} · {wall} wall · {agent} agent · {tools} tool calls",
+  "7432c240aa714c0a": "No finished turns in this window.",
+  "d9feca02c3487588": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " tokens ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " wall ·",
+    " ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    " agent time ·",
+    " ",
+    {
+      "i": 4,
+      "k": "_gt_value_4",
+      "v": "v"
+    },
+    " tool calls"
+  ],
   "d2bf6b6ea7fab036": "Dismiss voice input error",
   "2ddb62c94293eb14": "Cancel dictation",
   "f47533fed3606ffb": "Finish dictation",

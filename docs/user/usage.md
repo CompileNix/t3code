@@ -14,6 +14,31 @@ Usage aggregates history across Codex, Claude Code, Grok Build, OpenCode, Antigr
 - **Custom data directories**: Honors `CODEX_HOME`, `CLAUDE_CONFIG_DIR`, `GROK_HOME`, `PI_CODING_AGENT_DIR` / `PI_CODING_AGENT_SESSION_DIR`, `OPENCODE_DATA_DIR`, `ANTIGRAVITY_DATA_DIR`, and `XDG_DATA_HOME` (Muse). Use absolute or `~/` paths. Set `T3CODE_HOST_ID` to pin a container's host identity.
 - **Exclusions**: Codex and Claude Code 2.0.63+ text-generation runs (titles, commits, PR text, review guides) and Grok turns without a saved completed-turn record are not included.
 
+## Session stats
+
+Session stats show how much work a thread took: tokens by type, time, and tool calls. A thread's
+stats include its subagents and the tasks it delegated to other threads on the same environment.
+On web and desktop, turn on **Session stats** in **Settings → Appearance → Thread details**. On
+mobile, open **More → Session stats** in the thread header.
+
+**Wall time** is how long the thread's turns took. **Agent time** adds up the time of every agent,
+so with subagents working in parallel it can exceed wall time. Neither counts time a turn spent
+waiting on your answer or approval. Only finished turns count; while a
+turn runs, the stats show only how long it has been running.
+
+Below the usage charts, **Usage** totals the same figures by project for turns that ended in the
+selected window, for each environment and combined. Environments that are offline or whose
+server is too old to report session stats are left out, and the section says how many.
+
+Some numbers can be incomplete:
+
+- **Not reported by** names a provider whose turns reported no token counts.
+- **Partial** means only some turns reported token counts, for example because a turn was
+  interrupted.
+- Tasks delegated to another environment are counted on that environment, not here.
+- Output tokens include reasoning tokens. Subagents and compaction that a provider reports only as
+  input and output totals are listed apart from the main token bar.
+
 ## Custom model prices and filtering
 
 - **Custom prices & model mapping**: Open the environment dropdown on **Usage → Model prices** (or click **Set price** on an unpriced model) to set USD per million input/output/cache tokens, or set **Map to** to merge a preview/alias model ID into a target model's totals.

@@ -416,6 +416,13 @@ import {
 } from "./providerUsageLimits.ts";
 import { UsagePricing, UsageReadError, UsageSummary, UsageSummaryInput } from "./usage.ts";
 import {
+  GetSessionStatsRollupInput,
+  GetThreadSessionStatsInput,
+  SessionStatsReadError,
+  SessionStatsRollup,
+  ThreadSessionStats,
+} from "./sessionStats.ts";
+import {
   StorageCleanupReport,
   DatabaseReclaimError,
   DatabaseStorageStatus,
@@ -2267,6 +2274,24 @@ const WsOrchestrationV2GetNativeChildWorkRpc = Rpc.make(
   },
 );
 
+const WsOrchestrationV2GetThreadSessionStatsRpc = Rpc.make(
+  ORCHESTRATION_V2_WS_METHODS.getThreadSessionStats,
+  {
+    payload: GetThreadSessionStatsInput,
+    success: ThreadSessionStats,
+    error: Schema.Union([SessionStatsReadError, EnvironmentAuthorizationError]),
+  },
+);
+
+const WsOrchestrationV2GetSessionStatsRollupRpc = Rpc.make(
+  ORCHESTRATION_V2_WS_METHODS.getSessionStatsRollup,
+  {
+    payload: GetSessionStatsRollupInput,
+    success: SessionStatsRollup,
+    error: Schema.Union([SessionStatsReadError, EnvironmentAuthorizationError]),
+  },
+);
+
 const WsOrchestrationV2GetTurnItemRpc = Rpc.make(ORCHESTRATION_V2_WS_METHODS.getTurnItem, {
   payload: OrchestrationV2RpcSchemas.getTurnItem.input,
   success: OrchestrationV2RpcSchemas.getTurnItem.output,
@@ -2746,6 +2771,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsOrchestrationV2DispatchCommandRpc,
   WsOrchestrationV2GetWorkflowScriptRpc,
   WsOrchestrationV2GetNativeChildWorkRpc,
+  WsOrchestrationV2GetThreadSessionStatsRpc,
+  WsOrchestrationV2GetSessionStatsRollupRpc,
   WsOrchestrationV2StopWorkflowRpc,
   WsOrchestrationV2ForceStopThreadRpc,
   WsOrchestrationV2GetTurnItemRpc,

@@ -13,11 +13,16 @@ function humanizeSlug(slug: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+export function providerDriverDisplayName(driver: string): string {
+  const names: Partial<Record<string, string>> = PROVIDER_DISPLAY_NAMES;
+  return names[driver] ?? humanizeSlug(driver);
+}
+
 export function resolveProviderInstanceDisplayName(
   snapshot: Pick<ServerProvider, "instanceId" | "driver" | "displayName">,
 ): string {
   const trimmedSnapshotName = snapshot.displayName?.trim();
-  const kindLabel = PROVIDER_DISPLAY_NAMES[snapshot.driver] ?? humanizeSlug(snapshot.driver);
+  const kindLabel = providerDriverDisplayName(snapshot.driver);
   if (trimmedSnapshotName && trimmedSnapshotName !== kindLabel) return trimmedSnapshotName;
   if (snapshot.instanceId !== defaultInstanceIdForDriver(snapshot.driver)) {
     const humanized = humanizeSlug(snapshot.instanceId);

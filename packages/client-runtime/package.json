@@ -363,6 +363,10 @@
       "types": "./src/state/runtime.ts",
       "default": "./src/state/runtime.ts"
     },
+    "./state/session-stats": {
+      "types": "./src/state/session-stats.ts",
+      "default": "./src/state/session-stats.ts"
+    },
     "./state/usage": {
       "types": "./src/state/usage.ts",
       "default": "./src/state/usage.ts"
@@ -586,6 +590,10 @@
     "./diff-count": {
       "types": "./src/diffCount.ts",
       "default": "./src/diffCount.ts"
+    },
+    "./session-stats": {
+      "types": "./src/sessionStats.ts",
+      "default": "./src/sessionStats.ts"
     },
     "./mcp-apps": {
       "types": "./src/mcpApps/host.ts",

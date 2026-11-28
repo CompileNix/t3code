@@ -189,6 +189,22 @@
   "8c2d901183b4e219": "Klistra in hemligheten",
   "610aea624f895a78": "Sparad säkert och hålls privat",
   "329b7854b7e0546e": "Använd en 1Password-referens som {example}.",
+  "fad8a99a4b144aab": "Resonemang",
+  "63843e59a7503830": "Utdata",
+  "ec94a82a1d6d0359": "Verktygsanrop",
+  "24d7f1b999baf91c": "Modell/övrigt",
+  "716adc3acb5aba1d": "Kommando",
+  "acab42b7e6c6d85b": "Filändring",
+  "dbc09a469f8fd924": "Sökning",
+  "185ffbdd79cc9a3e": "Webb",
+  "39d408d6f2bbfe25": "MCP/övrigt",
+  "989611eaac01d441": "Subagent",
+  "eb744b807d0dc2cb": "Exkluderar tid som gått åt till att vänta på dig.",
+  "43868425247be54c": "Exkluderar tid som gått åt till att vänta på dig. Agenttiden summerar alla agenter och kan därför överstiga den faktiska tiden.",
+  "638c65b8385c95eb": "Ofullständigt: {reported} av {total} turer rapporterade tokens.",
+  "99c7060762b8c64d": "{providers} rapporterar inte tokens.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {1 delegerad uppgift i en annan miljö ingår inte.} other {{count} delegerade uppgifter i andra miljöer ingår inte.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {1 miljö ingår inte: den är offline eller så är dess server äldre än sessionsstatistiken.} other {{count} miljöer ingår inte: de är offline eller så är deras servrar äldre än sessionsstatistiken.}}",
   "d68b539295c009d3": "{count, plural, one {Delegerade {count} uppgift} other {Delegerade {count} uppgifter}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Försökte delegera {count} uppgift} other {Försökte delegera {count} uppgifter}}",
   "73208f89396763ce": "{count, plural, one {Begärde avbrott för {count} tråd} other {Begärde avbrott för {count} trådar}}",
@@ -4765,6 +4781,9 @@
   "11bb30071c8d00e4": "Länken kan användas en gång och går ut om 24 timmar.",
   "05ba3b5f06a7acfe": "Stäng filer",
   "c7e4f052c3d6c066": "Öppna filer",
+  "6ad625bc72d051e8": "Mer",
+  "4d0f85ff1c2192f0": "Sessionsstatistik",
+  "095e3a5a9ed48a9a": "Tokens, tid och verktygsanrop",
   "740ee1b96278f02f": "Ljud · {size}",
   "93ade1a4fd485bc3": "Ljud",
   "e8043d133bb85048": "Pausa ljudet",
@@ -5107,6 +5126,43 @@
     },
     ". Öppna ChatGPT med kontot du anslöt."
   ],
+  "8bc099917b51f15f": "{count, plural, one {Inkluderar {count} subagenttråd.} other {Inkluderar {count} subagenttrådar.}}",
+  "da143293b2d69fad": "Agenttid",
+  "30381966430dcfa2": "Tokens per typ",
+  "5142b3a21348886f": "Indata",
+  "0bd41ff995d36a66": "Cacheläsning",
+  "3f0dfe0cb15a3272": "Cacheskrivning",
+  "a35786495a908d4a": "Utdata",
+  "9ceea2db4ecf5ad4": "+ {elapsed} pågår",
+  "546cfd8ff432c2f3": "Faktisk tid",
+  "67113efdfd8d989f": "Inga tokenantal ännu.",
+  "a263f5d04781ccfd": [
+    "Utdata inkluderar ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " resonemang."
+  ],
+  "8587ccaf0d7d872b": [
+    "Subagenter och komprimering (endast indata/utdata):",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " in ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " ut"
+  ],
+  "5a35794ecaa8c27c": "Verktygsanrop",
   "a3d040c4ef4fc6e9": "Före takten",
   "b16fdf56b16d99c9": "I takt",
   "90f977e97ae8b6c6": "Under takten",
@@ -5244,13 +5300,9 @@
   "5d177ec0d4e89cde": "{share} av observerad indata",
   "1c69c1b0ae721e62": "Ej cachad indata",
   "032c2af56f844329": "{tokens} cacheskrivningar",
-  "a35786495a908d4a": "Utdata",
   "9d2acf4bdab6d880": "inkl. {tokens} resonerande",
   "4a71eca9a6fe0137": "Utan pris",
   "6781ea37879e25c1": "av posterna, inte med i kostnaden",
-  "5142b3a21348886f": "Indata",
-  "0bd41ff995d36a66": "Cacheläsning",
-  "3f0dfe0cb15a3272": "Cacheskrivning",
   "e29e3784b8c984fd": "Övrigt",
   "e5591a3cf178de72": "Standard",
   "572171fafbc3eb3a": "Snabb",
@@ -5274,6 +5326,38 @@
   ],
   "d1c32e217a2344a5": "Genomsöker leverantörstranskript…",
   "49c4cd88ca4d260a": "Ingen aktivitet i det här fönstret.",
+  "27b68a3aab26703b": "Sessionsstatistik · alla miljöer",
+  "43647329eafe6fd2": "{count, plural, one {{count} tråd} other {{count} trådar}} · {wall} faktisk · {agent} agent · {tools} verktygsanrop",
+  "7432c240aa714c0a": "Inga avslutade turer under den här perioden.",
+  "d9feca02c3487588": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " tokens ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " faktisk ·",
+    " ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    " agenttid ·",
+    " ",
+    {
+      "i": 4,
+      "k": "_gt_value_4",
+      "v": "v"
+    },
+    " verktygsanrop"
+  ],
   "d2bf6b6ea7fab036": "Stäng felet för röstinmatning",
   "2ddb62c94293eb14": "Avbryt diktering",
   "f47533fed3606ffb": "Avsluta diktering",

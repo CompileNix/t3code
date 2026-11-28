@@ -189,6 +189,22 @@
   "8c2d901183b4e219": "Cole o segredo",
   "610aea624f895a78": "Salvo com segurança e mantido privado",
   "329b7854b7e0546e": "Use uma referência do 1Password como {example}.",
+  "fad8a99a4b144aab": "Raciocínio",
+  "63843e59a7503830": "Saída",
+  "ec94a82a1d6d0359": "Chamadas de ferramentas",
+  "24d7f1b999baf91c": "Modelo/outros",
+  "716adc3acb5aba1d": "Comando",
+  "acab42b7e6c6d85b": "Alteração de arquivo",
+  "dbc09a469f8fd924": "Pesquisa",
+  "185ffbdd79cc9a3e": "Web",
+  "39d408d6f2bbfe25": "MCP/outros",
+  "989611eaac01d441": "Subagente",
+  "eb744b807d0dc2cb": "Não inclui o tempo aguardando você.",
+  "43868425247be54c": "Não inclui o tempo aguardando você. O tempo de agente soma todos os agentes, então pode passar do tempo real.",
+  "638c65b8385c95eb": "Parcial: {reported} de {total} turnos informaram tokens.",
+  "99c7060762b8c64d": "{providers} não informa os tokens.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {1 tarefa delegada em outro ambiente não está incluída.} other {{count} tarefas delegadas em outros ambientes não estão incluídas.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {1 ambiente não está incluído: está offline ou o servidor é anterior às estatísticas de sessão.} other {{count} ambientes não estão incluídos: estão offline ou os servidores são anteriores às estatísticas de sessão.}}",
   "d68b539295c009d3": "{count, plural, one {Delegou {count} tarefa} other {Delegou {count} tarefas}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Tentou delegar {count} tarefa} other {Tentou delegar {count} tarefas}}",
   "73208f89396763ce": "{count, plural, one {Pediu a interrupção de {count} thread} other {Pediu a interrupção de {count} threads}}",
@@ -4759,6 +4775,9 @@
   "11bb30071c8d00e4": "O link só pode ser usado uma vez e expira em 24 horas.",
   "05ba3b5f06a7acfe": "Fechar arquivos",
   "c7e4f052c3d6c066": "Abrir arquivos",
+  "6ad625bc72d051e8": "Mais",
+  "4d0f85ff1c2192f0": "Estatísticas da sessão",
+  "095e3a5a9ed48a9a": "Tokens, tempo e chamadas de ferramentas",
   "740ee1b96278f02f": "Áudio · {size}",
   "93ade1a4fd485bc3": "Áudio",
   "e8043d133bb85048": "Pausar áudio",
@@ -5101,6 +5120,43 @@
     },
     ". Abra o ChatGPT com a conta que você conectou."
   ],
+  "8bc099917b51f15f": "{count, plural, one {Inclui {count} thread de subagente.} other {Inclui {count} threads de subagentes.}}",
+  "da143293b2d69fad": "Tempo de agente",
+  "30381966430dcfa2": "Tokens por tipo",
+  "5142b3a21348886f": "Entrada",
+  "0bd41ff995d36a66": "Leitura de cache",
+  "3f0dfe0cb15a3272": "Gravação de cache",
+  "a35786495a908d4a": "Saída",
+  "9ceea2db4ecf5ad4": "+ {elapsed} em execução",
+  "546cfd8ff432c2f3": "Tempo real",
+  "67113efdfd8d989f": "Ainda não há contagens de tokens.",
+  "a263f5d04781ccfd": [
+    "A saída inclui ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " de raciocínio."
+  ],
+  "8587ccaf0d7d872b": [
+    "Subagentes e compactação (somente entrada/saída):",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " entrada ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " saída"
+  ],
+  "5a35794ecaa8c27c": "Chamadas de ferramentas",
   "a3d040c4ef4fc6e9": "Acima do ritmo",
   "b16fdf56b16d99c9": "No ritmo",
   "90f977e97ae8b6c6": "Abaixo do ritmo",
@@ -5238,13 +5294,9 @@
   "5d177ec0d4e89cde": "{share} da entrada observada",
   "1c69c1b0ae721e62": "Entrada sem cache",
   "032c2af56f844329": "{tokens} gravações de cache",
-  "a35786495a908d4a": "Saída",
   "9d2acf4bdab6d880": "incl. {tokens} de raciocínio",
   "4a71eca9a6fe0137": "Sem preço",
   "6781ea37879e25c1": "dos registros, fora do custo",
-  "5142b3a21348886f": "Entrada",
-  "0bd41ff995d36a66": "Leitura de cache",
-  "3f0dfe0cb15a3272": "Gravação de cache",
   "e29e3784b8c984fd": "Outros",
   "e5591a3cf178de72": "Padrão",
   "572171fafbc3eb3a": "Rápido",
@@ -5268,6 +5320,38 @@
   ],
   "d1c32e217a2344a5": "Verificando as transcrições dos provedores…",
   "49c4cd88ca4d260a": "Nenhuma atividade nesta janela.",
+  "27b68a3aab26703b": "Estatísticas da sessão · todos os ambientes",
+  "43647329eafe6fd2": "{count, plural, one {{count} thread} other {{count} threads}} · {wall} real · {agent} agente · {tools} chamadas de ferramentas",
+  "7432c240aa714c0a": "Nenhum turno concluído neste período.",
+  "d9feca02c3487588": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " tokens ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " real ·",
+    " ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    " tempo de agente ·",
+    " ",
+    {
+      "i": 4,
+      "k": "_gt_value_4",
+      "v": "v"
+    },
+    " chamadas de ferramentas"
+  ],
   "d2bf6b6ea7fab036": "Dispensar erro da entrada de voz",
   "2ddb62c94293eb14": "Cancelar ditado",
   "f47533fed3606ffb": "Concluir ditado",

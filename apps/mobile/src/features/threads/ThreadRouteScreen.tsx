@@ -1059,6 +1059,10 @@ function ThreadRouteContent(
               inspectorMode={inspectorMode}
               onOpenFilesInspector={handleOpenFilesInspector}
               onReturnToThread={props.onReturnToThread}
+              thread={{
+                environmentId: selectedThread.environmentId,
+                threadId: selectedThread.id,
+              }}
             />
           )
         }

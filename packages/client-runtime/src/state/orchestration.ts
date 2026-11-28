@@ -34,16 +34,20 @@ import * as EnvironmentSupervisor from "../connection/supervisor.ts";
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
 import * as ManagedRelayDpopSigner from "../relay/managedRelay.ts";
 import { EnvironmentRpcUnavailableError, request } from "../rpc/client.ts";
+import { sessionStatsRefreshKey } from "../sessionStats.ts";
 import type { EnvironmentShellState } from "./shell.ts";
 import { fetchEnvironmentThreadTranscript } from "./threadTranscriptHttp.ts";
 
 export function createOrchestrationEnvironmentAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry | HttpClient.HttpClient | R, E>,
   options: {
-    /** Re-checks `threadTitles` when one of their threads leaves the shell, and the archive on any removal. */
+    /**
+     * Re-checks `threadTitles` when one of their threads leaves the shell, the archive on any
+     * removal, and a thread's session stats when a run in its family ends.
+     */
     readonly shellState?: (
       environmentId: EnvironmentId,
-    ) => Atom.Atom<Pick<EnvironmentShellState, "removedAt">>;
+    ) => Atom.Atom<Pick<EnvironmentShellState, "removedAt" | "snapshot">>;
     /** Runs on each turn-range and full-thread diff the server answers. */
     readonly onCheckpointDiffAnswer?: QueryAnswerHandler<
       { readonly ignoreWhitespace?: boolean },
@@ -199,6 +203,27 @@ export function createOrchestrationEnvironmentAtoms<R, E>(
       tag: ORCHESTRATION_V2_WS_METHODS.getNativeChildWork,
       staleTimeMs: 0,
       idleTtlMs: 0,
+    }),
+    // The server counts finished turns only, so it reads again when one in the family ends.
+    threadSessionStats: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:orchestration:thread-session-stats",
+      tag: ORCHESTRATION_V2_WS_METHODS.getThreadSessionStats,
+      staleTimeMs: 30_000,
+      refreshTrigger: ({ environmentId, input }) => {
+        if (shellState === undefined) return undefined;
+        const state = shellState(environmentId);
+        return Atom.make((get) =>
+          Option.match(get(state).snapshot, {
+            onNone: () => "",
+            onSome: (snapshot) => sessionStatsRefreshKey(snapshot.threads, input.threadId),
+          }),
+        );
+      },
+    }),
+    sessionStatsRollup: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:orchestration:session-stats-rollup",
+      tag: ORCHESTRATION_V2_WS_METHODS.getSessionStatsRollup,
+      staleTimeMs: 60_000,
     }),
     stopWorkflow: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:orchestration:stop-workflow",

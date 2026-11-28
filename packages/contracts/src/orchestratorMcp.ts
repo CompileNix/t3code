@@ -3,6 +3,7 @@ import * as Schema from "effect/Schema";
 import * as SchemaTransformation from "effect/SchemaTransformation";
 
 import { AuthMcpClientAccess } from "./auth.ts";
+import { ThreadSessionStats } from "./sessionStats.ts";
 import {
   ContextTransferId,
   EnvironmentId,
@@ -456,6 +457,9 @@ export const OrchestratorMcpThreadReadInput = Schema.Struct({
   maxCharsPerItem: Schema.optional(clampedPositiveInt(20_000)).annotate({
     description: "Max 20000.",
   }),
+  includeStats: Schema.optional(Schema.Boolean).annotate({
+    description: "Add token, time and tool-call totals with subagents. Only when asked.",
+  }),
 });
 export type OrchestratorMcpThreadReadInput = typeof OrchestratorMcpThreadReadInput.Type;
 
@@ -547,6 +551,7 @@ export const OrchestratorMcpThreadReadResult = Schema.Struct({
   hasMore: Schema.Boolean,
   /** null when nothing is older than the page. Missing from peers that only read forward. */
   earlierPosition: Schema.optional(Schema.NullOr(NonNegativeInt)),
+  stats: Schema.optional(ThreadSessionStats),
 });
 export type OrchestratorMcpThreadReadResult = typeof OrchestratorMcpThreadReadResult.Type;
 

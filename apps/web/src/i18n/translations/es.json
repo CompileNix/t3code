@@ -191,6 +191,22 @@
   "8c2d901183b4e219": "Pega el secreto",
   "610aea624f895a78": "Guardado de forma segura y privada",
   "329b7854b7e0546e": "Usa una referencia de 1Password como {example}.",
+  "fad8a99a4b144aab": "Razonamiento",
+  "63843e59a7503830": "Salida",
+  "ec94a82a1d6d0359": "Llamadas a herramientas",
+  "24d7f1b999baf91c": "Modelo/otros",
+  "716adc3acb5aba1d": "Comando",
+  "acab42b7e6c6d85b": "Cambio de archivo",
+  "dbc09a469f8fd924": "Búsqueda",
+  "185ffbdd79cc9a3e": "Web",
+  "39d408d6f2bbfe25": "MCP/otros",
+  "989611eaac01d441": "Subagente",
+  "eb744b807d0dc2cb": "No incluye el tiempo esperándote.",
+  "43868425247be54c": "No incluye el tiempo esperándote. El tiempo de agente suma todos los agentes, por lo que puede superar el tiempo real.",
+  "638c65b8385c95eb": "Parcial: {reported} de {total} turnos informaron tokens.",
+  "99c7060762b8c64d": "{providers} no informa los tokens.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {No se incluye 1 tarea delegada en otro entorno.} other {No se incluyen {count} tareas delegadas en otros entornos.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {No se incluye 1 entorno: está sin conexión o su servidor es anterior a las estadísticas de sesión.} other {No se incluyen {count} entornos: están sin conexión o sus servidores son anteriores a las estadísticas de sesión.}}",
   "d68b539295c009d3": "{count, plural, one {Delegó {count} tarea} other {Delegó {count} tareas}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Intentó delegar {count} tarea} other {Intentó delegar {count} tareas}}",
   "73208f89396763ce": "{count, plural, one {Solicitó interrumpir {count} hilo} other {Solicitó interrumpir {count} hilos}}",
@@ -4462,6 +4478,14 @@
   ],
   "92347683e33e9f02": "Reenviar a este equipo, para cualquier app aquí",
   "3c7763243445b28d": "Detener servidor",
+  "4d0f85ff1c2192f0": "Estadísticas de sesión",
+  "8bc099917b51f15f": "{count, plural, one {Incluye {count} hilo de subagente.} other {Incluye {count} hilos de subagentes.}}",
+  "da143293b2d69fad": "Tiempo de agente",
+  "30381966430dcfa2": "Tokens por tipo",
+  "9ceea2db4ecf5ad4": "+ {elapsed} en curso",
+  "546cfd8ff432c2f3": "Tiempo real",
+  "67113efdfd8d989f": "Aún no hay recuentos de tokens.",
+  "5a35794ecaa8c27c": "Llamadas a herramientas",
   "991cc9fb37606c91": "(respuesta vacía)",
   "36e4b8d2db087296": "Bifurcar desde esta respuesta",
   "c92a0bab54261695": "Responder a esta respuesta",
@@ -12369,7 +12393,6 @@
   "c9903664b61c8e25": "Acierto de caché",
   "04f304a6af503ea2": "{share} del coste",
   "273c1532c1786aa0": "Coste por tipo",
-  "30381966430dcfa2": "Tokens por tipo",
   "0391cf3cac1a9fdb": "Coste por velocidad",
   "5ab44a24beb33aa7": "{tokens} tokens no tienen precio conocido",
   "bdd13272e8285146": "Definir precio",
@@ -12499,6 +12522,93 @@
   "37069a5ef57ee9fa": "Coste por hora y proveedor",
   "aa73a1b4208bc912": "Tokens procesados por día y proveedor",
   "5c3c0e3a9f3e4717": "Coste por día y proveedor",
+  "a34e24e9317c18c5": "Estadísticas de sesión por proyecto",
+  "6d64f8d0066f0310": "No hay estadísticas de sesión para este periodo.",
+  "a263f5d04781ccfd": [
+    "La salida incluye ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " de razonamiento."
+  ],
+  "bf74a3119a86dac3": [
+    "Subagentes y compactación (solo entrada/salida):",
+    " ",
+    {
+      "t": "span",
+      "i": 1,
+      "c": [
+        {
+          "i": 2,
+          "k": "_gt_value_2",
+          "v": "v"
+        },
+        " entrada ·",
+        " ",
+        {
+          "i": 3,
+          "k": "_gt_value_3",
+          "v": "v"
+        },
+        " salida"
+      ]
+    }
+  ],
+  "c35cf54e8d33faeb": [
+    {
+      "t": "span",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "tokens ·",
+    " ",
+    {
+      "t": "span",
+      "i": 3,
+      "c": {
+        "i": 4,
+        "k": "_gt_value_4",
+        "v": "v"
+      }
+    },
+    " ",
+    "real ·",
+    " ",
+    {
+      "t": "span",
+      "i": 5,
+      "c": {
+        "i": 6,
+        "k": "_gt_value_6",
+        "v": "v"
+      }
+    },
+    " ",
+    "tiempo de agente ·",
+    " ",
+    {
+      "t": "span",
+      "i": 7,
+      "c": {
+        "i": 8,
+        "k": "_gt_value_8",
+        "v": "v"
+      }
+    },
+    " ",
+    "llamadas a herramientas"
+  ],
+  "7432c240aa714c0a": "No hay turnos terminados en este periodo.",
+  "7de6cc7b1fe0d9e6": "Hilos",
+  "b30a1c3846fefd72": "Real",
+  "090c73e82eef71fa": "Tiempo de agente",
   "0bd41ff995d36a66": "Lectura de caché",
   "3f0dfe0cb15a3272": "Escritura de caché",
   "1c9d860be42b1c02": "Salida",

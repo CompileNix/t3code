@@ -76,6 +76,7 @@ The server automatically links open PRs matching an unsettled thread's branch. O
 - **Subagents**: Follow delegated work from the conversation card or **Agents**. Stopping a parent thread also stops its delegated subagents. Subagents started internally by the provider are read-only; message the parent thread instead.
 - **Running dev servers** (web/desktop): The thread details card lists local servers started by the thread's terminals or Claude agent with their ports. Click one to open it in the browser panel, or **Stop** to end it (macOS/Linux only).
 - **Customize thread details**: Right-click the thread details card or open **Settings → Appearance → Thread details** to show/hide rows.
+- **Session stats**: Turn on **Session stats** to see the thread's tokens, time, and tool calls, including its subagents. See [session stats](./usage.md#session-stats).
 
 ## Open a thread beside the one you are in
 

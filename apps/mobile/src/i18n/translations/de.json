@@ -189,6 +189,22 @@
   "8c2d901183b4e219": "Geheimnis einfügen",
   "610aea624f895a78": "Sicher gespeichert und privat gehalten",
   "329b7854b7e0546e": "Verwende eine 1Password-Referenz wie {example}.",
+  "fad8a99a4b144aab": "Schlussfolgern",
+  "63843e59a7503830": "Ausgabe",
+  "ec94a82a1d6d0359": "Tool-Aufrufe",
+  "24d7f1b999baf91c": "Modell/Sonstiges",
+  "716adc3acb5aba1d": "Befehl",
+  "acab42b7e6c6d85b": "Dateiänderung",
+  "dbc09a469f8fd924": "Suche",
+  "185ffbdd79cc9a3e": "Web",
+  "39d408d6f2bbfe25": "MCP/Sonstiges",
+  "989611eaac01d441": "Subagent",
+  "eb744b807d0dc2cb": "Ohne die Zeit, in der auf dich gewartet wurde.",
+  "43868425247be54c": "Ohne die Zeit, in der auf dich gewartet wurde. Die Agentenzeit addiert alle Agenten und kann daher die Gesamtdauer übersteigen.",
+  "638c65b8385c95eb": "Unvollständig: {reported} von {total} Turns haben Tokens gemeldet.",
+  "99c7060762b8c64d": "Tokens werden von {providers} nicht gemeldet.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {1 delegierte Aufgabe in einer anderen Umgebung ist nicht enthalten.} other {{count} delegierte Aufgaben in anderen Umgebungen sind nicht enthalten.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {1 Umgebung ist nicht enthalten: Sie ist offline oder ihr Server ist älter als die Sitzungsstatistik.} other {{count} Umgebungen sind nicht enthalten: Sie sind offline oder ihre Server sind älter als die Sitzungsstatistik.}}",
   "d68b539295c009d3": "{count, plural, one {{count} Aufgabe delegiert} other {{count} Aufgaben delegiert}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Versucht, {count} Aufgabe zu delegieren} other {Versucht, {count} Aufgaben zu delegieren}}",
   "73208f89396763ce": "{count, plural, one {Unterbrechung für {count} Thread angefordert} other {Unterbrechung für {count} Threads angefordert}}",
@@ -4765,6 +4781,9 @@
   "11bb30071c8d00e4": "Der Link kann einmal verwendet werden und läuft nach 24 Stunden ab.",
   "05ba3b5f06a7acfe": "Dateien schließen",
   "c7e4f052c3d6c066": "Dateien öffnen",
+  "6ad625bc72d051e8": "Mehr",
+  "4d0f85ff1c2192f0": "Sitzungsstatistik",
+  "095e3a5a9ed48a9a": "Tokens, Zeit und Tool-Aufrufe",
   "740ee1b96278f02f": "Audio · {size}",
   "93ade1a4fd485bc3": "Audio",
   "e8043d133bb85048": "Audio pausieren",
@@ -5107,6 +5126,43 @@
     },
     ". Öffne ChatGPT mit dem verbundenen Konto."
   ],
+  "8bc099917b51f15f": "{count, plural, one {Enthält {count} Subagent-Thread.} other {Enthält {count} Subagent-Threads.}}",
+  "da143293b2d69fad": "Agentenzeit",
+  "30381966430dcfa2": "Tokens nach Typ",
+  "5142b3a21348886f": "Eingabe",
+  "0bd41ff995d36a66": "Cache-Lesen",
+  "3f0dfe0cb15a3272": "Cache-Schreiben",
+  "a35786495a908d4a": "Ausgabe",
+  "9ceea2db4ecf5ad4": "+ {elapsed} laufend",
+  "546cfd8ff432c2f3": "Gesamtdauer",
+  "67113efdfd8d989f": "Noch keine Token-Zahlen.",
+  "a263f5d04781ccfd": [
+    "Ausgabe enthält ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " Schlussfolgern."
+  ],
+  "8587ccaf0d7d872b": [
+    "Subagenten & Komprimierung (nur Ein-/Ausgabe):",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " ein ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " aus"
+  ],
+  "5a35794ecaa8c27c": "Tool-Aufrufe",
   "a3d040c4ef4fc6e9": "Über dem Tempo",
   "b16fdf56b16d99c9": "Im Tempo",
   "90f977e97ae8b6c6": "Unter dem Tempo",
@@ -5244,13 +5300,9 @@
   "5d177ec0d4e89cde": "{share} der beobachteten Eingabe",
   "1c69c1b0ae721e62": "Nicht gecachte Eingabe",
   "032c2af56f844329": "{tokens} Cache-Schreibvorgänge",
-  "a35786495a908d4a": "Ausgabe",
   "9d2acf4bdab6d880": "inkl. {tokens} Reasoning",
   "4a71eca9a6fe0137": "Ohne Preis",
   "6781ea37879e25c1": "der Einträge, nicht in den Kosten enthalten",
-  "5142b3a21348886f": "Eingabe",
-  "0bd41ff995d36a66": "Cache-Lesen",
-  "3f0dfe0cb15a3272": "Cache-Schreiben",
   "e29e3784b8c984fd": "Sonstiges",
   "e5591a3cf178de72": "Standard",
   "572171fafbc3eb3a": "Schnell",
@@ -5274,6 +5326,38 @@
   ],
   "d1c32e217a2344a5": "Anbieter-Transkripte werden gescannt…",
   "49c4cd88ca4d260a": "Keine Aktivität in diesem Zeitraum.",
+  "27b68a3aab26703b": "Sitzungsstatistik · alle Umgebungen",
+  "43647329eafe6fd2": "{count, plural, one {{count} Thread} other {{count} Threads}} · {wall} Dauer · {agent} Agent · {tools} Tool-Aufrufe",
+  "7432c240aa714c0a": "Keine abgeschlossenen Turns in diesem Zeitraum.",
+  "d9feca02c3487588": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " Tokens ·",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " Dauer ·",
+    " ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    " Agentenzeit ·",
+    " ",
+    {
+      "i": 4,
+      "k": "_gt_value_4",
+      "v": "v"
+    },
+    " Tool-Aufrufe"
+  ],
   "d2bf6b6ea7fab036": "Fehler der Spracheingabe schließen",
   "2ddb62c94293eb14": "Diktieren abbrechen",
   "f47533fed3606ffb": "Diktieren beenden",

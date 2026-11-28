@@ -79,6 +79,7 @@ const declaredFailure = (result: McpSchema.CallToolResult) => {
   return result.isError === true && text?.type === "text" ? JSON.parse(text.text) : undefined;
 };
 import { htmlRenderFromToolItem } from "@t3tools/shared/toolOutput";
+import * as SessionStats from "../../sessionStats/SessionStatsService.ts";
 
 const decodeMcpAttachmentInput = Schema.decodeUnknownEffect(McpAttachmentInput);
 const decodeThreadReadResult = Schema.decodeUnknownEffect(OrchestratorMcpThreadReadResult);
@@ -1145,7 +1146,12 @@ it.effect("hides act-as-caller tools from a client caller", () =>
         Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
         Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
         Layer.provide(Layer.mock(SecretRequests.SecretRequests)({})),
-        Layer.provide(Layer.mock(RemoteDelegation.RemoteDelegation)({})),
+        Layer.provide(
+          Layer.mergeAll(
+            Layer.mock(RemoteDelegation.RemoteDelegation)({}),
+            Layer.mock(SessionStats.SessionStatsService)({}),
+          ),
+        ),
       ),
     ),
   ),
@@ -1209,7 +1215,12 @@ it.effect("a caller cannot rewrite a scheduled task that runs above its own mode
         Layer.provide(Layer.mock(PeerForwarding.PeerForwarding)({})),
         Layer.provide(Layer.mock(PeerLinkRequests.PeerLinkRequests)({})),
         Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
-        Layer.provide(Layer.mock(RemoteDelegation.RemoteDelegation)({})),
+        Layer.provide(
+          Layer.mergeAll(
+            Layer.mock(RemoteDelegation.RemoteDelegation)({}),
+            Layer.mock(SessionStats.SessionStatsService)({}),
+          ),
+        ),
       ),
     ),
   ),
@@ -1404,7 +1415,12 @@ it.effect.each(["t3_thread_interrupt", "t3_workflow_stop"])(
           Layer.provide(Layer.mock(ScheduledTaskService.ScheduledTaskService)({})),
           Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
           Layer.provide(Layer.mock(SecretRequests.SecretRequests)({})),
-          Layer.provide(Layer.mock(RemoteDelegation.RemoteDelegation)({})),
+          Layer.provide(
+            Layer.mergeAll(
+              Layer.mock(RemoteDelegation.RemoteDelegation)({}),
+              Layer.mock(SessionStats.SessionStatsService)({}),
+            ),
+          ),
           Layer.provide(Layer.mock(PeerForwarding.PeerForwarding)({})),
           Layer.provide(Layer.mock(PeerLinkRequests.PeerLinkRequests)({})),
           Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
@@ -1451,6 +1467,7 @@ it.effect(
           Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
           Layer.provide(Layer.mock(SecretRequests.SecretRequests)({})),
           Layer.provide(Layer.mock(RemoteDelegation.RemoteDelegation)({})),
+          Layer.provide(Layer.mock(SessionStats.SessionStatsService)({})),
           Layer.provide(Layer.mock(PeerForwarding.PeerForwarding)({})),
           Layer.provide(Layer.mock(PeerLinkRequests.PeerLinkRequests)({})),
           Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
@@ -1551,7 +1568,12 @@ it.effect("discovers workflow stop targets and requires orchestration capability
         Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
         Layer.provide(Layer.mock(ProjectService.ProjectService)({})),
         Layer.provide(Layer.mock(SecretRequests.SecretRequests)({})),
-        Layer.provide(Layer.mock(RemoteDelegation.RemoteDelegation)({})),
+        Layer.provide(
+          Layer.mergeAll(
+            Layer.mock(RemoteDelegation.RemoteDelegation)({}),
+            Layer.mock(SessionStats.SessionStatsService)({}),
+          ),
+        ),
       ),
     ),
   );
@@ -1772,7 +1794,12 @@ it.effect(
           Layer.provide(Layer.mock(PeerForwarding.PeerForwarding)({})),
           Layer.provide(Layer.mock(PeerLinkRequests.PeerLinkRequests)({})),
           Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
-          Layer.provide(Layer.mock(RemoteDelegation.RemoteDelegation)({})),
+          Layer.provide(
+            Layer.mergeAll(
+              Layer.mock(RemoteDelegation.RemoteDelegation)({}),
+              Layer.mock(SessionStats.SessionStatsService)({}),
+            ),
+          ),
         ),
       ),
     );

@@ -44,6 +44,7 @@ import * as SecretRequests from "../secrets/SecretRequests.ts";
 import * as RemoteDelegation from "../peer/RemoteDelegation.ts";
 import type { McpInvocationScope } from "./McpInvocationContext.ts";
 import * as OrchestratorMcpService from "./OrchestratorMcpService.ts";
+import * as SessionStats from "../sessionStats/SessionStatsService.ts";
 
 const driver = ProviderDriverKind.make("claudeAgent");
 const instanceId = ProviderInstanceId.make("claudeAgent");
@@ -183,6 +184,7 @@ const makeLayer = (
         Layer.mock(ProjectService.ProjectService)({}),
         Layer.mock(SecretRequests.SecretRequests)({}),
         Layer.mock(RemoteDelegation.RemoteDelegation)({}),
+        Layer.mock(SessionStats.SessionStatsService)({}),
         ServerSettings.layerTest(),
         Layer.mock(ScheduledTaskService.ScheduledTaskService)({}),
         NodeServices.layer,

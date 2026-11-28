@@ -145,6 +145,7 @@ import { WITHHELD, withoutWebhookUrlToken } from "../scheduledTasks/webhookUrlTo
 import * as SecretRequests from "../secrets/SecretRequests.ts";
 import * as PeerForwarding from "../peer/PeerForwarding.ts";
 import * as RemoteDelegation from "../peer/RemoteDelegation.ts";
+import * as SessionStats from "../sessionStats/SessionStatsService.ts";
 
 // Return recoverable handles before common MCP client timeouts expire.
 const DEFAULT_WAIT_TIMEOUT_MS = 30_000;
@@ -1396,6 +1397,7 @@ const make = Effect.gen(function* () {
   const gitDriver = yield* GitVcsDriver.GitVcsDriver;
   const serverSettings = yield* ServerSettings.ServerSettingsService;
   const remoteDelegation = yield* RemoteDelegation.RemoteDelegation;
+  const sessionStats = yield* SessionStats.SessionStatsService;
 
   const requireProject = (projectId: ProjectId) =>
     projects.getById(projectId).pipe(
@@ -3802,6 +3804,13 @@ const make = Effect.gen(function* () {
         nextPosition: items.at(-1)?.position ?? null,
         hasMore: timeline.hasMore || (!newestFirst && items.length < timeline.items.length),
         earlierPosition: timeline.hasEarlier || start > 0 ? (items[0]?.position ?? null) : null,
+        ...(input.includeStats === true
+          ? {
+              stats: yield* sessionStats
+                .getThreadSessionStats({ threadId: input.threadId })
+                .pipe(Effect.mapError(threadManagementFailure)),
+            }
+          : {}),
       } satisfies OrchestratorMcpThreadReadResult;
     }),
     sendToThread: Effect.fn("OrchestratorMcpService.sendToThread")(function* (scope, input) {
@@ -4022,4 +4031,5 @@ export const layer: Layer.Layer<
   | SecretRequests.SecretRequests
   | ServerSettings.ServerSettingsService
   | RemoteDelegation.RemoteDelegation
+  | SessionStats.SessionStatsService
 > = Layer.effect(OrchestratorMcpService, make);

@@ -39,10 +39,14 @@ import { cn } from "../../lib/cn";
 import type { MessageResolver } from "../../i18n/messages";
 import { SettingsScreen } from "../settings/components/SettingsScreen";
 import { NativeWorkspaceTabActivityContext } from "../../native/v5-workspace-context";
+import { sessionStatsRange } from "@t3tools/client-runtime/session-stats";
+import { refreshSessionStats } from "../../state/sessionStats";
 import { useUsage, type EnvironmentUsageStatus } from "../../state/usage";
 import { SettingsSection } from "../settings/components/SettingsSection";
 import { usageAxisDayLabel, usageAxisHourLabel } from "./usageAxisLabels";
 import { UsageAccessCard, type UsageAccessPrompt } from "./UsageAccessCard";
+import { UsageSessionStatsSection } from "./UsageSessionStatsSection";
+import { UsageShareBar } from "./UsageShareBar";
 import { UsageDailyChart } from "./UsageDailyChart";
 import { toggleUsageEnvironment } from "./usageEnvironmentSelection";
 import { useRefreshLimits } from "./UsageLimitsSection";
@@ -198,6 +202,10 @@ function UsageScreen(props: {
     ) {
       setWindowSelection({ days: windowDays, window: nextWindow });
     }
+    refreshSessionStats({
+      ...sessionStatsRange(nextWindow),
+      environmentIds: selectedEnvironments.map((environment) => environment.environmentId),
+    });
     refreshingRef.current = true;
     setRefreshingUsage(true);
     void refresh(nextWindow).finally(() => {
@@ -409,6 +417,14 @@ function UsageScreen(props: {
                       </UsageUpdating>
                     </>
                   )}
+                  {selectedEnvironments.length > 0 ? (
+                    <UsageSessionStatsSection
+                      window={window}
+                      environmentIds={selectedEnvironments.map(
+                        (environment) => environment.environmentId,
+                      )}
+                    />
+                  ) : null}
                 </>
               )}
             </Animated.View>
@@ -772,7 +788,7 @@ function CostSection(props: { readonly merged: MergedUsage; readonly wide: boole
     <SettingsSection title={gt("Cost", { $context: "section heading" })}>
       <View className={props.wide ? "flex-row" : undefined}>
         <View className={props.wide ? "min-w-0 flex-1" : undefined}>
-          <ShareBar label={gt("By type")} segments={byType} />
+          <UsageShareBar label={gt("By type")} segments={byType} format={formatUsd} />
         </View>
         {speedCost.fast + speedCost.ultrafast > 0 ? (
           <View
@@ -782,53 +798,16 @@ function CostSection(props: { readonly merged: MergedUsage; readonly wide: boole
                 : "border-t border-border-subtle"
             }
           >
-            <ShareBar
+            <UsageShareBar
               label={gt("By speed")}
               segments={bySpeed}
+              format={formatUsd}
               aside={gt("{cost} premium", { cost: formatUsd(speedCost.premium) })}
             />
           </View>
         ) : null}
       </View>
     </SettingsSection>
-  );
-}
-
-function ShareBar(props: {
-  readonly label: string;
-  readonly segments: readonly { label: string; value: number; color: string }[];
-  readonly aside?: string;
-}) {
-  const visible = props.segments.filter((segment) => segment.value > 0);
-  if (visible.length === 0) return null;
-
-  return (
-    <View className="gap-3 p-4">
-      <View className="flex-row items-baseline justify-between gap-3">
-        <Text className="text-sm text-foreground-muted">{props.label}</Text>
-        {props.aside ? (
-          <Text className="text-sm tabular-nums text-foreground-muted">{props.aside}</Text>
-        ) : null}
-      </View>
-      <View className="h-2 flex-row gap-0.5">
-        {visible.map((segment) => (
-          <View
-            key={segment.label}
-            className="h-full rounded-sm"
-            style={{ flex: segment.value, backgroundColor: segment.color }}
-          />
-        ))}
-      </View>
-      <View className="flex-row flex-wrap gap-x-4 gap-y-1.5">
-        {visible.map((segment) => (
-          <View key={segment.label} className="flex-row items-center gap-1.5">
-            <View className="size-2 rounded-sm" style={{ backgroundColor: segment.color }} />
-            <Text className="text-sm text-foreground-muted">{segment.label}</Text>
-            <Text className="text-sm tabular-nums text-foreground">{formatUsd(segment.value)}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
   );
 }
 

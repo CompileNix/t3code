@@ -91,7 +91,9 @@ type ProviderTerminalEvent = Extract<
   { readonly type: "turn.terminal" }
 >;
 
-function isTerminalProviderTurnStatus(status: OrchestrationV2ProviderTurn["status"]): boolean {
+export function isTerminalProviderTurnStatus(
+  status: OrchestrationV2ProviderTurn["status"],
+): boolean {
   return (
     status === "completed" ||
     status === "interrupted" ||

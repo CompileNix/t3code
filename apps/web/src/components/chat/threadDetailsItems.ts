@@ -33,6 +33,7 @@ export const THREAD_DETAILS_ITEMS = [
     label: msg("Machine load", { $context: "thread details item: CPU, memory and disk use" }),
     defaultVisible: false,
   },
+  { id: "sessionStats", label: msg("Session stats"), defaultVisible: false },
 ] as const;
 
 export type ThreadDetailsItemId = (typeof THREAD_DETAILS_ITEMS)[number]["id"];

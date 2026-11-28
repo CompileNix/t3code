@@ -191,6 +191,22 @@
   "8c2d901183b4e219": "Klistra in hemligheten",
   "610aea624f895a78": "Sparad säkert och hålls privat",
   "329b7854b7e0546e": "Använd en 1Password-referens som {example}.",
+  "fad8a99a4b144aab": "Resonemang",
+  "63843e59a7503830": "Utdata",
+  "ec94a82a1d6d0359": "Verktygsanrop",
+  "24d7f1b999baf91c": "Modell/övrigt",
+  "716adc3acb5aba1d": "Kommando",
+  "acab42b7e6c6d85b": "Filändring",
+  "dbc09a469f8fd924": "Sökning",
+  "185ffbdd79cc9a3e": "Webb",
+  "39d408d6f2bbfe25": "MCP/övrigt",
+  "989611eaac01d441": "Subagent",
+  "eb744b807d0dc2cb": "Exkluderar tid som gått åt till att vänta på dig.",
+  "43868425247be54c": "Exkluderar tid som gått åt till att vänta på dig. Agenttiden summerar alla agenter och kan därför överstiga den faktiska tiden.",
+  "638c65b8385c95eb": "Ofullständigt: {reported} av {total} turer rapporterade tokens.",
+  "99c7060762b8c64d": "{providers} rapporterar inte tokens.",
+  "4c7aa2811b56ac5e": "{count, plural, =1 {1 delegerad uppgift i en annan miljö ingår inte.} other {{count} delegerade uppgifter i andra miljöer ingår inte.}}",
+  "1ef7690ad5d3866a": "{count, plural, =1 {1 miljö ingår inte: den är offline eller så är dess server äldre än sessionsstatistiken.} other {{count} miljöer ingår inte: de är offline eller så är deras servrar äldre än sessionsstatistiken.}}",
   "d68b539295c009d3": "{count, plural, one {Delegerade {count} uppgift} other {Delegerade {count} uppgifter}}",
   "0ccb2e7aa712bec4": "{count, plural, one {Försökte delegera {count} uppgift} other {Försökte delegera {count} uppgifter}}",
   "73208f89396763ce": "{count, plural, one {Begärde avbrott för {count} tråd} other {Begärde avbrott för {count} trådar}}",
@@ -4463,6 +4479,14 @@
   ],
   "92347683e33e9f02": "Vidarebefordra till den här datorn, för alla appar här",
   "3c7763243445b28d": "Stoppa server",
+  "4d0f85ff1c2192f0": "Sessionsstatistik",
+  "8bc099917b51f15f": "{count, plural, one {Inkluderar {count} subagenttråd.} other {Inkluderar {count} subagenttrådar.}}",
+  "da143293b2d69fad": "Agenttid",
+  "30381966430dcfa2": "Token per typ",
+  "9ceea2db4ecf5ad4": "+ {elapsed} pågår",
+  "546cfd8ff432c2f3": "Faktisk tid",
+  "67113efdfd8d989f": "Inga tokenantal ännu.",
+  "5a35794ecaa8c27c": "Verktygsanrop",
   "991cc9fb37606c91": "(tomt svar)",
   "36e4b8d2db087296": "Forka från det här svaret",
   "c92a0bab54261695": "Svara på det här svaret",
@@ -12382,7 +12406,6 @@
   "c9903664b61c8e25": "Cacheträff",
   "04f304a6af503ea2": "{share} av kostnaden",
   "273c1532c1786aa0": "Kostnad per typ",
-  "30381966430dcfa2": "Token per typ",
   "0391cf3cac1a9fdb": "Kostnad per hastighet",
   "5ab44a24beb33aa7": "{tokens} token har inget känt pris",
   "bdd13272e8285146": "Ange pris",
@@ -12512,6 +12535,93 @@
   "37069a5ef57ee9fa": "Kostnad per timme per leverantör",
   "aa73a1b4208bc912": "Bearbetade token per dag per leverantör",
   "5c3c0e3a9f3e4717": "Kostnad per dag per leverantör",
+  "a34e24e9317c18c5": "Sessionsstatistik per projekt",
+  "6d64f8d0066f0310": "Ingen sessionsstatistik för den här perioden.",
+  "a263f5d04781ccfd": [
+    "Utdata inkluderar ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " resonemang."
+  ],
+  "bf74a3119a86dac3": [
+    "Subagenter och komprimering (endast indata/utdata):",
+    " ",
+    {
+      "t": "span",
+      "i": 1,
+      "c": [
+        {
+          "i": 2,
+          "k": "_gt_value_2",
+          "v": "v"
+        },
+        " in ·",
+        " ",
+        {
+          "i": 3,
+          "k": "_gt_value_3",
+          "v": "v"
+        },
+        " ut"
+      ]
+    }
+  ],
+  "c35cf54e8d33faeb": [
+    {
+      "t": "span",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "tokens ·",
+    " ",
+    {
+      "t": "span",
+      "i": 3,
+      "c": {
+        "i": 4,
+        "k": "_gt_value_4",
+        "v": "v"
+      }
+    },
+    " ",
+    "faktisk ·",
+    " ",
+    {
+      "t": "span",
+      "i": 5,
+      "c": {
+        "i": 6,
+        "k": "_gt_value_6",
+        "v": "v"
+      }
+    },
+    " ",
+    "agenttid ·",
+    " ",
+    {
+      "t": "span",
+      "i": 7,
+      "c": {
+        "i": 8,
+        "k": "_gt_value_8",
+        "v": "v"
+      }
+    },
+    " ",
+    "verktygsanrop"
+  ],
+  "7432c240aa714c0a": "Inga avslutade turer under den här perioden.",
+  "7de6cc7b1fe0d9e6": "Trådar",
+  "b30a1c3846fefd72": "Faktisk",
+  "090c73e82eef71fa": "Agenttid",
   "0bd41ff995d36a66": "Cacheläsning",
   "3f0dfe0cb15a3272": "Cacheskrivning",
   "1c9d860be42b1c02": "Utdata",
